@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card" style="max-width: 800px; margin: 0 auto;">
+  <div class="card-header">
+    <div>
+      <div class="card-title">مرحباً بك في منصة الاختبارات التعليمية</div>
+      <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+        دليل الإعداد الأولي للمنصة - تهيئة بيانات المدرسة والشعار والترويسة الرسمية
+      </p>
+    </div>
+    <span class="badge badge-success">التهيئة السريعة</span>
+  </div>
+
+  <form action="{{ url_for('complete_first_run') }}" method="POST" enctype="multipart/form-data">
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+      <!-- Step 1: Identity -->
+      <div style="background: var(--panel-alt); padding: 18px; border-radius: 10px; border: 1px solid var(--border);">
+        <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--primary);">
+          1. بيانات المعلمة والمدرسة
+        </h3>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>اسم المعلمة:</label>
+            <input type="text" name="teacher_name" class="form-control" value="{{ s.teacher_name }}" required>
+          </div>
+          <div class="form-group">
+            <label>اسم المدرسة:</label>
+            <input type="text" name="school_name" class="form-control" value="{{ s.school_name }}" required>
+          </div>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>مديرية التربية والتعليم:</label>
+            <input type="text" name="directorate_name" class="form-control" value="{{ s.directorate_name }}" required>
+          </div>
+          <div class="form-group">
+            <label>الصف الافتراضي:</label>
+            <input type="text" name="grade" class="form-control" value="{{ s.grade }}">
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 2: Logos & Branding -->
+      <div style="background: var(--panel-alt); padding: 18px; border-radius: 10px; border: 1px solid var(--border);">
+        <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 8px; color: var(--primary);">
+          2. الشعار والترويسة المعتمدة (اختياري)
+        </h3>
+        <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 14px;">
+          تظهر هذه الشعارات في ترويسة ورقة الامتحان الرسمية المطبوعة واختبارات الطلاب. (إذا لم تقم برفعها الآن، سيتم استخدام الشعارات الرسمية الافتراضية، ويمكنك تعديلها لاحقاً من الإعدادات).
+        </p>
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label>شعار المدرسة:</label>
+            <input type="file" name="school_logo" class="form-control" accept="image/*">
+            <small style="font-size: 11px; color: var(--text-muted);">صيغ مدعومة: PNG, JPG, WEBP</small>
+          </div>
+          <div class="form-group">
+            <label>شعار وزارة التربية والتعليم / المملكة:</label>
+            <input type="file" name="ministry_logo" class="form-control" accept="image/*">
+            <small style="font-size: 11px; color: var(--text-muted);">الشعار الافتراضي: شعار المملكة والوزارة الرسمي</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Default Subjects Ready -->
+      <div style="background: var(--success-bg); border: 1px solid rgba(22, 163, 74, 0.2); padding: 16px; border-radius: 10px;">
+        <h4 style="font-size: 14px; font-weight: 700; color: var(--success); margin-bottom: 4px;">المواد والوحدات الأساسية جاهزة:</h4>
+        <p style="font-size: 13px; color: var(--text-muted);">
+          تم تفعيل المواد الأساسية تلقائياً (اللغة العربية، اللغة الإنجليزية، تاريخ الأردن، التربية الإسلامية). يمكنك إضافة أي مواد أو حزم مخصصة لاحقاً بنقرة زر.
+        </p>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+        <button type="submit" class="btn btn-primary btn-lg">✓ إكمال التهيئة وبدء الاستخدام</button>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

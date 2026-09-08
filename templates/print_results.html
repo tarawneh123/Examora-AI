@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>كشف علامات ونتائج الامتحان - {{ exam.title if exam else 'الامتحانات' }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Cairo', 'Traditional Arabic', sans-serif;
+      color: #000;
+      background: #f8fafc;
+      margin: 0;
+      padding: 0;
+    }
+
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #fff !important; }
+      .paper-sheet {
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      @page {
+        size: A4 landscape;
+        margin: 10mm 8mm;
+      }
+      tr {
+        page-break-inside: avoid;
+      }
+    }
+
+    .toolbar-bar {
+      background: #0f172a;
+      color: #fff;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .paper-sheet {
+      max-width: 280mm;
+      margin: 20px auto;
+      background: #fff;
+      padding: 14mm;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      border-radius: 8px;
+    }
+
+    .results-print-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      font-size: 11pt;
+      text-align: center;
+    }
+
+    .results-print-table th, .results-print-table td {
+      border: 1.5px solid #000;
+      padding: 6px 8px;
+    }
+
+    .results-print-table th {
+      background-color: #f1f5f9;
+      font-weight: 800;
+    }
+
+    .stats-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin: 16px 0;
+      text-align: center;
+    }
+
+    .stats-box {
+      border: 1.5px solid #000;
+      padding: 8px;
+      background: #f8fafc;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Action Toolbar (Hidden in Print) -->
+  <div class="toolbar-bar no-print">
+    <div style="font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+      <span>📊</span>
+      <span>تصدير وطباعة كشف علامات الامتحان الرسمي ({{ attempts|length }} طالب)</span>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <a href="{{ url_for('export_results_csv') }}" class="btn btn-secondary" style="background: #059669; color: #fff; font-weight: 700;">
+        📊 تصدير إلى Excel (CSV)
+      </a>
+      <a href="{{ url_for('results_dashboard') }}" class="btn btn-secondary" style="background: #334155; color: #fff;">← العودة لكشوفات النتائج</a>
+      <button onclick="window.print()" class="btn btn-primary" style="background: #2563eb; font-weight: 800;">🖨️ طباعة الكشف الآن (Ctrl + P)</button>
+    </div>
+  </div>
+
+  <div class="paper-sheet">
+    <!-- Official Header -->
+    <header style="border: 2px solid #000; padding: 12px 16px; margin-bottom: 16px; display: grid; grid-template-columns: 1fr 1.4fr 1fr; align-items: center; direction: rtl; background: #fff;">
+      <!-- Right Side -->
+      <div style="text-align: right; font-size: 10.5pt; line-height: 1.5; font-weight: 700;">
+        <div>المملكة الأردنية الهاشمية</div>
+        <div>وزارة التربية والتعليم</div>
+        <div>{{ s.directorate_name or 'مديرية التربية والتعليم' }}</div>
+        <div>المعلم / المعلمة: <strong>{{ s.teacher_name }}</strong></div>
+      </div>
+
+      <!-- Center Side -->
+      <div style="text-align: center; line-height: 1.4;">
+        <h1 style="font-size: 14pt; font-weight: 900; margin: 0 0 2px;">كشف علامات ونتائج الامتحان الرسمي</h1>
+        <div style="font-size: 12pt; font-weight: 800; color: #1e3a8a;">
+          {{ exam.title if exam else 'كافة الامتحانات' }}
+        </div>
+        <div style="font-size: 10.5pt; font-weight: 700;">
+          المبحث: {{ exam.subject_name or exam.subject if exam else '—' }} | الصف: {{ exam.class_name if exam else '—' }} ({{ exam.section if exam else '—' }})
+        </div>
+        <div style="font-size: 10pt; color: #475569; margin-top: 2px;">
+          تاريخ استخراج الكشف: {{ now_date }}
+        </div>
+      </div>
+
+      <!-- Left Side -->
+      <div style="display: flex; flex-direction: column; align-items: center; text-align: center; font-size: 11pt; font-weight: 700;">
+        <div style="font-size: 11.5pt; font-weight: 800; margin-bottom: 4px;">مدرسة {{ s.school_name or 'مدارس ذرى المجد' }}</div>
+        {% if school_logo_url %}
+          <img src="{{ school_logo_url }}" alt="شعار المدرسة" style="max-height: 65px; max-width: 75px; object-fit: contain;">
+        {% endif %}
+      </div>
+    </header>
+
+    <!-- Quick Statistics Summary Box -->
+    {% if attempts %}
+      {% set total_att = attempts|length %}
+      {% set scores = [] %}
+      {% for a in attempts %}{% if scores.append(a.score) %}{% endif %}{% endfor %}
+      <div class="stats-summary-grid">
+        <div class="stats-box">
+          <div style="font-size: 10pt; color: #475569;">عدد المتقدمين</div>
+          <div style="font-size: 14pt; font-weight: 900;">{{ total_att }}</div>
+        </div>
+        <div class="stats-box">
+          <div style="font-size: 10pt; color: #475569;">العلامة الكلية</div>
+          <div style="font-size: 14pt; font-weight: 900;">{{ exam.total_marks or (attempts[0].total if attempts else 40) }}</div>
+        </div>
+        <div class="stats-box">
+          <div style="font-size: 10pt; color: #475569;">أعلى علامة</div>
+          <div style="font-size: 14pt; font-weight: 900; color: #15803d;">{{ scores|max }}</div>
+        </div>
+        <div class="stats-box">
+          <div style="font-size: 10pt; color: #475569;">أدنى علامة</div>
+          <div style="font-size: 14pt; font-weight: 900; color: #b91c1c;">{{ scores|min }}</div>
+        </div>
+        <div class="stats-box">
+          <div style="font-size: 10pt; color: #475569;">نسبة النجاح</div>
+          {% set pass_count = attempts|selectattr('percentage', 'ge', 50)|list|length %}
+          <div style="font-size: 14pt; font-weight: 900; color: #0284c7;">{{ '%.1f'|format((pass_count / total_att) * 100) }}%</div>
+        </div>
+      </div>
+
+      <!-- Results Table -->
+      <table class="results-print-table">
+        <thead>
+          <tr>
+            <th style="width: 40px;">#</th>
+            <th style="min-width: 170px; text-align: right;">اسم الطالب / الطالبة</th>
+            <th>الرقم الوطني / الدخول</th>
+            {% if not exam %}<th>اسم الامتحان</th>{% endif %}
+            <th style="text-align: center; min-width: 90px;">العلامة</th>
+            <th>التقدير العام</th>
+            <th>تاريخ ووقت التسليم</th>
+            <th>ملاحظات الاعتماد</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in attempts %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td style="text-align: right; font-weight: 700;">{{ a.student_name }}</td>
+              <td><code>{{ a.national_id or a.username or '—' }}</code></td>
+              {% if not exam %}<td>{{ a.exam_title }}</td>{% endif %}
+              <td style="font-weight: 900; font-size: 12pt; text-align: center;">{{ a.score }} / {{ a.total }}</td>
+              <td style="font-weight: 800;">
+                {% if a.percentage >= 90 %}
+                  <span style="color: #15803d;">ممتاز</span>
+                {% elif a.percentage >= 80 %}
+                  <span style="color: #0369a1;">جيد جداً</span>
+                {% elif a.percentage >= 65 %}
+                  <span style="color: #b45309;">جيد</span>
+                {% elif a.percentage >= 50 %}
+                  <span style="color: #475569;">مقبول</span>
+                {% else %}
+                  <span style="color: #b91c1c;">بحاجة لمتابعة</span>
+                {% endif %}
+              </td>
+              <td style="font-size: 9.5pt; color: #475569;">{{ a.submitted_at or a.finished_at or '—' }}</td>
+              <td style="font-size: 9pt;">
+                {% if a.is_manually_adjusted %}
+                  <span style="color: #b45309; font-weight: 700;">تعديل يدوي</span>
+                {% else %}
+                  تصحيح آلي
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+
+    {% else %}
+      <div style="text-align: center; padding: 40px; color: #64748b;">
+        لا توجد نتائج مسجلة لهذا الامتحان حتى الآن.
+      </div>
+    {% endif %}
+  </div>
+
+</body>
+</html>

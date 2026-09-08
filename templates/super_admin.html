@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>سجل الأساتذة والتراخيص الصادرة - لوحة السوبر أدمن</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      background-color: #090d16;
+      background-image: radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.08), transparent 45%),
+                        radial-gradient(circle at 90% 80%, rgba(14, 165, 233, 0.05), transparent 40%);
+      font-family: 'Cairo', sans-serif;
+      color: #f8fafc;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+    .super-container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+    }
+    .super-card {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+    }
+    .stat-overview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-box-dark {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 14px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    }
+    .stat-icon-wrap {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    .stat-val-dark {
+      font-size: 24px;
+      font-weight: 900;
+      color: #ffffff;
+      line-height: 1.1;
+    }
+    .stat-lbl-dark {
+      font-size: 12px;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="super-container">
+    <!-- Super Admin Navigation Bar -->
+    {% set active_admin_tab = 'teachers' %}
+    {% include "super_admin_nav.html" %}
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div style="background: {{ 'rgba(16, 185, 129, 0.15)' if category == 'success' else ('rgba(56, 189, 248, 0.15)' if category == 'info' else 'rgba(239, 68, 68, 0.15)') }}; border: 1px solid {{ '#10b981' if category == 'success' else ('#38bdf8' if category == 'info' else '#ef4444') }}; color: {{ '#34d399' if category == 'success' else ('#38bdf8' if category == 'info' else '#fca5a5') }}; padding: 12px 18px; border-radius: 10px; font-size: 13.5px; margin-bottom: 20px;">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Statistics Overview Cards -->
+    <div class="stat-overview-grid">
+      <div class="stat-box-dark">
+        <div class="stat-icon-wrap" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">👥</div>
+        <div>
+          <div class="stat-val-dark">{{ teachers|length }}</div>
+          <div class="stat-lbl-dark">إجمالي المعلمين المسجلين</div>
+        </div>
+      </div>
+
+      <div class="stat-box-dark">
+        <div class="stat-icon-wrap" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">✓</div>
+        <div>
+          {% set active_count = teachers|rejectattr('is_expired')|list|length %}
+          <div class="stat-val-dark" style="color: #34d399;">{{ active_count }}</div>
+          <div class="stat-lbl-dark">الاشتراكات النشطة</div>
+        </div>
+      </div>
+
+      <div class="stat-box-dark">
+        <div class="stat-icon-wrap" style="background: rgba(239, 68, 68, 0.15); color: #f87171;">⚠️</div>
+        <div>
+          {% set expired_count = teachers|selectattr('is_expired')|list|length %}
+          <div class="stat-val-dark" style="color: #f87171;">{{ expired_count }}</div>
+          <div class="stat-lbl-dark">الاشتراكات المنتهية</div>
+        </div>
+      </div>
+
+      <div class="stat-box-dark">
+        <div class="stat-icon-wrap" style="background: rgba(245, 158, 11, 0.15); color: #fbbf24;">🔒</div>
+        <div>
+          {% set bound_count = teachers|selectattr('is_bound')|list|length %}
+          <div class="stat-val-dark" style="color: #fbbf24;">{{ bound_count }}</div>
+          <div class="stat-lbl-dark">الأجهزة المقفولة والموثقة</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending Teachers Awaiting Payment & Activation -->
+    {% if pending_teachers %}
+      <div class="super-card" style="border: 2px solid #f59e0b; background: rgba(245, 158, 11, 0.05); margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid rgba(245, 158, 11, 0.2); padding-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h2 style="font-size: 17px; font-weight: 900; margin: 0; color: #fbbf24; display: flex; align-items: center; gap: 8px;">
+              <span>🔔</span>
+              <span>طلبات تسجيل المعلمين الجدد بانتظار التحقق والدفع ({{ pending_teachers|length }} طلب جديد)</span>
+            </h2>
+            <div style="font-size: 12.5px; color: #cbd5e1; margin-top: 3px;">
+              سجل هؤلاء المعلمون في المنصة وبانتظار استلامك لرسوم الاشتراك وتفعيل ترخيصهم للبدء بالعمل
+            </div>
+          </div>
+          <span class="badge" style="background: #f59e0b; color: #000; font-weight: 800; padding: 6px 14px; border-radius: 999px;">
+            بانتظار موافقتك واعتمادك
+          </span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px;">
+          {% for pt in pending_teachers %}
+            <div style="background: #111827; border: 1px solid #f59e0b; border-radius: 14px; padding: 18px;">
+              <div style="font-size: 15px; font-weight: 800; color: #ffffff;">{{ pt.teacher_name }}</div>
+              <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">{{ pt.school_name }}</div>
+              <div style="margin: 10px 0; font-size: 12.5px; color: #cbd5e1; background: #090d16; padding: 8px 12px; border-radius: 8px;">
+                <div>البريد: <code style="color: #38bdf8;">{{ pt.email }}</code></div>
+                <div>تاريخ الطلب: {{ (pt.created_at or '')[:10] }}</div>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <form action="{{ url_for('super_admin_activate_user', id=pt.id) }}" method="POST" style="flex: 1;">
+                  <button type="submit" class="btn btn-primary btn-sm" style="width: 100%; background: #10b981; border: none; font-weight: 800; padding: 7px 12px;">
+                    ✓ تأكيد الدفع وتفعيل الحساب
+                  </button>
+                </form>
+                <form action="{{ url_for('super_admin_reject_user', id=pt.id) }}" method="POST" data-confirm="رفض وحذف طلب هذا المعلم؟">
+                  <button type="submit" class="btn btn-danger btn-sm" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; padding: 7px 12px;">
+                    رفض ✕
+                  </button>
+                </form>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Main Screen Content: Directory of Authorized Teachers & Licenses (Cards Layout) -->
+    <div class="super-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #1f2937; padding-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h2 style="font-size: 17px; font-weight: 800; margin: 0; color: #f59e0b; display: flex; align-items: center; gap: 8px;">
+            <span>👥</span>
+            <span>سجل الأساتذة والتراخيص الصادرة ({{ teachers|length }} معلم)</span>
+          </h2>
+          <div style="font-size: 12.5px; color: #94a3b8; margin-top: 3px;">
+            بطاقات متابعة حالة الاشتراكات، الأجهزة المقفولة، وتمديد الصلاحيات
+          </div>
+        </div>
+
+        <a href="{{ url_for('super_admin_provision_view') }}" class="btn btn-primary" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; font-weight: 800; border: none; padding: 10px 18px; border-radius: 8px;">
+          ➕ إصدار ترخيص لمعلم جديد
+        </a>
+      </div>
+
+      <!-- High-Contrast Professional Subscription Cards Grid -->
+      <div class="subscriptions-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 18px;">
+        {% for t in teachers %}
+          <div class="sub-card" style="background: #111827; border: 1px solid #1f2937; border-radius: 16px; padding: 20px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); display: flex; flex-direction: column; justify-content: space-between;">
+            
+            <!-- Card Top Header -->
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 10px;">
+                <div>
+                  <div style="font-size: 16px; font-weight: 900; color: #ffffff; display: flex; align-items: center; gap: 6px;">
+                    <span>🎓</span>
+                    <span>{{ t.teacher_name }}</span>
+                  </div>
+                  <div style="font-size: 12px; color: #94a3b8; margin-top: 2px;">
+                    🏫 {{ t.school_name }}
+                  </div>
+                  {% if t.email == active_username or t.teacher_name == active_teacher_name %}
+                    <span style="display: inline-block; background: #0284c7; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-top: 4px;">نشط على هذا الجهاز</span>
+                  {% endif %}
+                </div>
+
+                <div>
+                  {% if t.status == 'ACTIVE' and not t.is_expired %}
+                    <span style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; padding: 4px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 800;">
+                      نشط ✓
+                    </span>
+                  {% elif t.is_expired %}
+                    <span style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; padding: 4px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 800;">
+                      منتهي الاشتراك ⚠️
+                    </span>
+                  {% elif t.status in ('PENDING_ACTIVATION', 'PENDING_PAYMENT') %}
+                    <span style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b; padding: 4px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 800;">
+                      بانتظار تأكيد الدفع ⏳
+                    </span>
+                  {% else %}
+                    <span style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; padding: 4px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 800;">
+                      معلق ✕
+                    </span>
+                  {% endif %}
+                </div>
+              </div>
+
+              <!-- Credentials Box -->
+              <div style="background: #090d16; border: 1px solid #1e293b; border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; font-size: 12.5px; color: #cbd5e1;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                  <span style="color: #64748b;">البريد الإلكتروني:</span>
+                  <code style="color: #38bdf8; font-family: monospace;">{{ t.email }}</code>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                  <span style="color: #64748b;">كلمة المرور:</span>
+                  <code style="color: #fbbf24; font-family: monospace; font-weight: bold;">{{ t.password }}</code>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span style="color: #64748b;">كود الترخيص:</span>
+                  <span style="font-family: monospace; font-size: 11px; color: #94a3b8;">{{ t.license_key }}</span>
+                </div>
+              </div>
+
+              <!-- Subscription & Device Details -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; font-size: 12px;">
+                <div style="background: #1e293b; padding: 10px; border-radius: 10px; border: 1px solid #334155;">
+                  <div style="color: #94a3b8; font-size: 11px; margin-bottom: 2px;">⏳ رصيد وصلاحية الاشتراك:</div>
+                  <div style="font-size: 13px; font-weight: 800; color: #ffffff;">
+                    {% if t.is_expired %}
+                      <span style="color: #f87171;">منتهي</span>
+                    {% else %}
+                      <span style="color: #34d399;">متبقي {{ t.days_remaining }} يوم</span>
+                    {% endif %}
+                  </div>
+                  <div style="color: #64748b; font-size: 10.5px; margin-top: 2px;">ينتهي: {{ t.subscription_end_date or '—' }}</div>
+                </div>
+
+                <div style="background: #1e293b; padding: 10px; border-radius: 10px; border: 1px solid #334155;">
+                  <div style="color: #94a3b8; font-size: 11px; margin-bottom: 2px;">💻 جهاز المعلم المربوط:</div>
+                  <div style="font-size: 12px; font-weight: 800;">
+                    {% if t.is_bound %}
+                      <span style="color: #10b981; display: inline-flex; align-items: center; gap: 3px;">
+                        <span>🔒</span>
+                        <span>مقفول على جهازه</span>
+                      </span>
+                      <div style="font-size: 9.5px; color: #64748b; font-family: monospace; margin-top: 2px;">{{ (t.device_id or '')[:14] }}...</div>
+                    {% else %}
+                      <span style="color: #94a3b8;">⚪ بانتظار أول دخول</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card Bottom Actions Toolbar -->
+            <div style="border-top: 1px solid #1f2937; padding-top: 12px; margin-top: 4px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+              {% if t.status in ('PENDING_ACTIVATION', 'PENDING_PAYMENT') %}
+                <form action="{{ url_for('super_admin_activate_user', id=t.id) }}" method="POST" style="display: inline; flex: 1;">
+                  <button type="submit" class="btn btn-primary btn-sm" style="width: 100%; background: #10b981; border: none; font-weight: 800; padding: 6px 12px;">
+                    ✓ تفعيل الترخيص
+                  </button>
+                </form>
+              {% endif %}
+
+              <!-- Extend Subscription -->
+              <form action="{{ url_for('super_admin_extend_subscription', id=t.id) }}" method="POST" style="display: inline;">
+                <input type="hidden" name="days" value="365">
+                <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 11px; padding: 5px 10px; background: #059669; color: #fff; border: none; font-weight: 700;" title="تمديد الاشتراك سنة إضافية (+365 يوم)">
+                  ⏳ +365 يوم
+                </button>
+              </form>
+
+              <!-- Reset Device -->
+              {% if t.is_bound %}
+                <form action="{{ url_for('super_admin_reset_device', id=t.id) }}" method="POST" style="display: inline;" data-confirm="هل تريد فك ارتباط الجهاز لهذا المعلم ليتمكن من الدخول من جهاز جديد؟">
+                  <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 11px; padding: 5px 10px; background: #eab308; color: #000; font-weight: 800; border: none;" title="فك ارتباط الجهاز الحالي">
+                    🔓 فك الجهاز
+                  </button>
+                </form>
+              {% endif %}
+
+              <!-- Sync to Firebase -->
+              <form action="{{ url_for('super_admin_sync_to_firebase', id=t.id) }}" method="POST" style="display: inline;">
+                <button type="submit" class="btn btn-primary btn-sm" style="font-size: 11px; padding: 5px 10px; background: #0284c7; border: none; font-weight: 700;" title="مزامنة فورية مباشرة مع Firebase Auth و Realtime Database">
+                  🔄 مزامنة Firebase
+                </button>
+              </form>
+
+              <!-- Send Password Reset -->
+              <form action="{{ url_for('super_admin_send_reset', id=t.id) }}" method="POST" style="display: inline;">
+                <button type="submit" class="btn btn-secondary btn-sm" style="font-size: 11px; padding: 5px 10px; background: #334155; color: #38bdf8; border: 1px solid #475569;" title="إرسال رابط تعيين كلمة السر للإيميل">
+                  ✉️ رابط السر
+                </button>
+              </form>
+
+              <!-- Delete Teacher -->
+              <form action="{{ url_for('super_admin_delete_teacher', id=t.id) }}" method="POST" style="display: inline; margin-right: auto;" data-confirm="تأكيد حذف ترخيص وسجل هذا المعلم نهائياً من قاعدة البيانات وFirebase؟">
+                <button type="submit" class="btn btn-danger btn-sm" style="font-size: 11px; padding: 5px 10px; background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444;">
+                  حذف 🗑️
+                </button>
+              </form>
+            </div>
+
+          </div>
+        {% else %}
+          <div style="grid-column: 1 / -1; text-align: center; padding: 48px; color: #94a3b8;">
+            <div style="font-size: 36px; margin-bottom: 8px;">📋</div>
+            <p>لا يوجد أي معلمين مسجلين حالياً. يمكنك إصدار ترخيص جديد من الزر أعلاه.</p>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block actions %}
+  <button class="btn btn-primary" data-modal-open="uploadMediaModal">+ رفع صور جديدة</button>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">مكتبة الصور والوسائط المرفوعة للأسئلة</div>
+    <span class="badge badge-info">{{ images|length }} صورة</span>
+  </div>
+
+  {% if images %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 18px;">
+      {% for img in images %}
+        <div style="border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; background: var(--panel); box-shadow: var(--shadow-sm); display: flex; flex-direction: column;">
+          <div style="height: 140px; background: #0f172a; display: grid; place-items: center; overflow: hidden;">
+            <img src="{{ img.url }}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+          </div>
+          <div style="padding: 12px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+            <div style="font-size: 11.5px; color: var(--text-muted); word-break: break-all; margin-bottom: 8px;">
+              {{ img.name }}
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 8px;">
+              <span style="font-size: 11px; color: var(--text-light);">{{ (img.size / 1024)|round(1) }} KB</span>
+              <form action="{{ url_for('media_delete', filename=img.name) }}" method="POST" data-confirm="هل أنت متأكد من حذف هذه الصورة المرفوعة نهائياً؟" data-confirm-title="تأكيد حذف الصورة" data-confirm-btn="نعم، حذف الصورة">
+                <button type="submit" class="btn btn-danger btn-sm" style="padding: 3px 8px; font-size: 11px;">حذف</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div style="text-align: center; padding: 48px 20px; color: var(--text-muted);">
+      <div style="font-size: 36px; margin-bottom: 12px;">🖼️</div>
+      <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 4px;">مكتبة الوسائط فارغة</h3>
+      <p style="font-size: 13.5px; margin-bottom: 16px;">يمكنك رفع الرسوم التوضيحية والصور لاستخدامها في أسئلة الامتحانات.</p>
+      <button class="btn btn-primary" data-modal-open="uploadMediaModal">+ رفع صورة الآن</button>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Upload Modal -->
+<div class="modal-overlay" id="uploadMediaModal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">رفع صور إلى مكتبة الوسائط</div>
+      <button class="close-btn" data-modal-close>&times;</button>
+    </div>
+    <form action="{{ url_for('media_upload') }}" method="POST" enctype="multipart/form-data">
+      <div class="form-group">
+        <label>اختر صورة أو عدة صور (PNG, JPG, WEBP, GIF):</label>
+        <input type="file" name="images" class="form-control" multiple accept="image/*" required>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button type="button" class="btn btn-secondary" data-modal-close>إلغاء</button>
+        <button type="submit" class="btn btn-primary">بدء الرفع</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

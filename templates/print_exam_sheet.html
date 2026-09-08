@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>كشف علامات امتحان: {{ exam.title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Cairo', 'Traditional Arabic', sans-serif;
+      color: #000;
+      background: #f8fafc;
+      margin: 0;
+      padding: 0;
+    }
+
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #fff !important; }
+      .sheet-container {
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      @page {
+        size: A4 portrait;
+        margin: 12mm 10mm;
+      }
+    }
+
+    .sheet-container {
+      max-width: 210mm;
+      margin: 20px auto;
+      background: #fff;
+      padding: 12mm;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+
+    .sheet-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      font-size: 11pt;
+      text-align: center;
+    }
+
+    .sheet-table th, .sheet-table td {
+      border: 1.5px solid #000;
+      padding: 6px 8px;
+    }
+
+    .sheet-table th {
+      background-color: #f1f5f9;
+      font-weight: 800;
+    }
+
+    .toolbar-bar {
+      background: #0f172a;
+      color: #fff;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Action Toolbar -->
+  <div class="toolbar-bar no-print">
+    <div style="font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+      <span>📑</span>
+      <span>كشف علامات الامتحان الرسمي المعتمد (جاهز للطباعة والتسليم للإدارة)</span>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <a href="{{ url_for('results_dashboard') }}" class="btn btn-secondary" style="background: #334155; color: #fff;">← العودة لكشوفات النتائج</a>
+      <button onclick="window.print()" class="btn btn-primary" style="background: #2563eb; font-weight: 800;">🖨️ طباعة الكشف (Ctrl + P)</button>
+    </div>
+  </div>
+
+  <div class="sheet-container">
+    <!-- Official Exam Header -->
+    {% include "components/official_header.html" %}
+
+    <div style="text-align: center; margin: 14px 0 10px; font-size: 13pt; font-weight: 900; text-decoration: underline;">
+      كشف نتائج وعلامات الطلاب - {{ exam.title }} (المبحث: {{ exam.subject_name or exam.subject }})
+    </div>
+
+    {% if attempts %}
+      <table class="sheet-table">
+        <thead>
+          <tr>
+            <th style="width: 40px;">#</th>
+            <th style="text-align: right; min-width: 180px;">اسم الطالب / الطالبة</th>
+            <th>الصف / الشعبة</th>
+            <th>الرقم الوطني / الدخول</th>
+            <th style="text-align: center; min-width: 90px;">العلامة</th>
+            <th>التقدير</th>
+            <th style="min-width: 90px;">ملاحظات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in attempts %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td style="text-align: right; font-weight: 700;">{{ a.student_full_name }}</td>
+              <td>{{ a.class_name or '—' }} ({{ a.section or '—' }})</td>
+              <td><code>{{ a.national_id or '—' }}</code></td>
+              <td style="font-weight: 900; font-size: 12pt; text-align: center;">
+                {{ a.score }} / {{ a.total }}
+              </td>
+              <td style="font-weight: 800;">
+                {% if a.percentage >= 90 %}
+                  <span style="color: #15803d;">ممتاز</span>
+                {% elif a.percentage >= 80 %}
+                  <span style="color: #0369a1;">جيد جداً</span>
+                {% elif a.percentage >= 65 %}
+                  <span style="color: #b45309;">جيد</span>
+                {% elif a.percentage >= 50 %}
+                  <span style="color: #475569;">مقبول</span>
+                {% else %}
+                  <span style="color: #b91c1c;">بحاجة لمتابعة</span>
+                {% endif %}
+              </td>
+              <td style="font-size: 10pt;">
+                {% if a.is_manually_adjusted %}
+                  <span>تعديل يدوي</span>
+                {% else %}
+                  <span>—</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+
+    {% else %}
+      <div style="text-align: center; padding: 40px; color: #64748b;">
+        <p style="font-size: 15px; font-weight: 700;">لا توجد محاولات أو علامات مسجلة لهذا الامتحان حتى الآن.</p>
+      </div>
+    {% endif %}
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block actions %}
+  <button type="button" class="btn btn-primary" onclick="openNewTopicModal()">
+    <span>➕</span> طرح موضوع جديد
+  </button>
+{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 20px;">
+
+  <!-- Category & Filter Bar -->
+  <div class="filter-bar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; background: #fff; padding: 16px 20px; border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+      <a href="{{ url_for('forum_home') }}" class="btn btn-sm {{ 'btn-primary' if not selected_category else 'btn-outline' }}">
+        جميع المواضيع ({{ total_topics }})
+      </a>
+      {% for cat in ['أسئلة واستفسارات', 'أفكار تعليمية', 'مشاركة ملفات', 'مشاكل تقنية', 'إعلانات الإدارة'] %}
+        <a href="{{ url_for('forum_home', category=cat) }}" class="btn btn-sm {{ 'btn-primary' if selected_category == cat else 'btn-outline' }}">
+          {{ cat }}
+        </a>
+      {% endfor %}
+    </div>
+
+    <!-- Search Box -->
+    <form method="GET" action="{{ url_for('forum_home') }}" style="display: flex; gap: 8px;">
+      {% if selected_category %}<input type="hidden" name="category" value="{{ selected_category }}">{% endif %}
+      <input type="text" name="q" value="{{ search_query or '' }}" placeholder="بحث في مواضيع المنتدى..." class="form-control" style="width: 240px; padding: 6px 12px; font-size: 13px;">
+      <button type="submit" class="btn btn-secondary btn-sm">بحث</button>
+    </form>
+  </div>
+
+  <!-- Topics List -->
+  {% if topics %}
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      {% for t in topics %}
+        <div class="card" style="padding: 18px 22px; border-radius: 12px; border: 1px solid var(--border); transition: transform 0.15s, box-shadow 0.15s; background: #fff;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 14px;">
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                <span class="badge" style="background: #eff6ff; color: var(--primary); font-weight: 800; font-size: 11px; padding: 4px 10px; border-radius: 20px;">
+                  {{ t.category }}
+                </span>
+                {% if t.is_pinned %}
+                  <span class="badge" style="background: #fef3c7; color: #b45309; font-weight: 800; font-size: 11px; padding: 4px 8px; border-radius: 20px;">
+                    📌 مثبت
+                  </span>
+                {% endif %}
+                <span style="font-size: 12px; color: var(--text-muted);">
+                  بواسطة: <strong>{{ t.author_name }}</strong> • {{ t.created_at }}
+                </span>
+              </div>
+
+              <h3 style="font-size: 17px; font-weight: 800; margin-bottom: 8px;">
+                <a href="{{ url_for('forum_topic_view', id=t.id) }}" style="color: var(--text); text-decoration: none;">
+                  {{ t.title }}
+                </a>
+              </h3>
+
+              <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5; max-height: 42px; overflow: hidden; text-overflow: ellipsis;">
+                {{ t.content }}
+              </p>
+            </div>
+
+            <!-- Stats & Action -->
+            <div style="display: flex; align-items: center; gap: 14px; text-align: center; border-right: 1px solid #f1f5f9; padding-right: 16px;">
+              <div>
+                <div style="font-size: 16px; font-weight: 800; color: var(--primary);">{{ t.replies_count or 0 }}</div>
+                <div style="font-size: 11px; color: var(--text-muted);">ردود</div>
+              </div>
+              <div>
+                <div style="font-size: 16px; font-weight: 800; color: #e11d48;">{{ t.likes_count or 0 }}</div>
+                <div style="font-size: 11px; color: var(--text-muted);">إعجابات</div>
+              </div>
+              <a href="{{ url_for('forum_topic_view', id=t.id) }}" class="btn btn-outline btn-sm" style="font-size: 12px; padding: 6px 12px;">
+                عرض الموضوع ↗
+              </a>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state card" style="text-align: center; padding: 50px 20px;">
+      <div style="font-size: 40px; margin-bottom: 12px;">💬</div>
+      <h3>لا توجد مواضيع منشورة في هذا القسم حالياً</h3>
+      <p style="color: var(--text-muted);">كن أول من يبادر بطرح موضوع ونقاش تعليمي مفيد مع زملائك الأساتذة.</p>
+      <button type="button" class="btn btn-primary" onclick="openNewTopicModal()" style="margin-top: 14px;">
+        ➕ طرح موضوع جديد الآن
+      </button>
+    </div>
+  {% endif %}
+
+</div>
+
+<!-- New Topic Modal -->
+<div id="newTopicModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
+  <div class="card" style="width: 90%; max-width: 600px; padding: 26px; border-radius: 14px; box-shadow: var(--shadow-lg);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+      <h3 style="font-size: 18px; font-weight: 800;">طرح موضوع جديد في منتدى الأساتذة</h3>
+      <button type="button" onclick="closeNewTopicModal()" style="background: none; border: none; font-size: 20px; cursor: pointer;">✕</button>
+    </div>
+
+    <form method="POST" action="{{ url_for('forum_create_topic') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label style="font-weight: 700; font-size: 13px; display: block; margin-bottom: 6px;">عنوان الموضوع:</label>
+        <input type="text" name="title" class="form-control" placeholder="اكتب عنواناً واضحاً وموجزاً..." required>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label style="font-weight: 700; font-size: 13px; display: block; margin-bottom: 6px;">القسم / التصنيف:</label>
+        <select name="category" class="form-control" required>
+          <option value="أسئلة واستفسارات">أسئلة واستفسارات</option>
+          <option value="أفكار تعليمية">أفكار تعليمية</option>
+          <option value="مشاركة ملفات">مشاركة ملفات</option>
+          <option value="مشاكل تقنية">مشاكل تقنية</option>
+          {% if session.get('is_super_admin') %}
+            <option value="إعلانات الإدارة">إعلانات الإدارة</option>
+          {% endif %}
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 18px;">
+        <label style="font-weight: 700; font-size: 13px; display: block; margin-bottom: 6px;">محتوى الموضوع أو السؤال:</label>
+        <textarea name="content" class="form-control" rows="5" placeholder="اكتب التفاصيل والملاحظات هنا..." required></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" onclick="closeNewTopicModal()" class="btn btn-secondary">إلغاء</button>
+        <button type="submit" class="btn btn-primary">نشر الموضوع 🚀</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openNewTopicModal() {
+    document.getElementById('newTopicModal').style.display = 'flex';
+  }
+  function closeNewTopicModal() {
+    document.getElementById('newTopicModal').style.display = 'none';
+  }
+</script>
+{% endblock %}

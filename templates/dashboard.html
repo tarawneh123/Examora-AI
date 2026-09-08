@@ -1,0 +1,351 @@
+{% extends "base.html" %}
+
+{% block actions %}
+  <button type="button" class="btn btn-secondary" onclick="openRoadmapModal()" style="font-weight: 700;">
+    💡 المرشد التفاعلي (خارطة الطريق)
+  </button>
+  <a href="{{ url_for('exam_creator') }}" class="btn btn-primary" style="font-weight: 800;">
+    + إنشاء امتحان جديد
+  </a>
+  <a href="{{ url_for('import_center') }}" class="btn btn-secondary" style="font-weight: 700;">
+    ⚡ استخراج أسئلة (OSR) <span class="badge-ai-sparkle">AI</span>
+  </a>
+{% endblock %}
+
+{% block content %}
+
+<!-- Quick Student Portal Share Banner -->
+<div style="background: linear-gradient(135deg, #eff6ff, #f0fdf4); border: 1.5px solid #bfdbfe; border-radius: 14px; padding: 16px 20px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; box-shadow: 0 2px 8px rgba(37,99,235,0.06);">
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <div style="width: 46px; height: 46px; border-radius: 12px; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 22px;">
+      🎓
+    </div>
+    <div>
+      <div style="font-size: 15px; font-weight: 800; color: #1e3a8a;">
+        بوابة تقديم الامتحانات الرقمية للطلاب
+      </div>
+      <div style="font-size: 12.5px; color: #475569;">
+        يدخل الطالب عبر رقمه الوطني أو اسمه ورمز الامتحان المكون من 6 أرقام للإجابة فوراً
+      </div>
+    </div>
+  </div>
+  <div style="display: flex; gap: 8px; align-items: center;">
+    <a href="{{ url_for('student_login') }}" target="_blank" class="btn btn-primary btn-sm" style="font-weight: 800; padding: 8px 16px;">
+      فتح بوابة الطالب ↗
+    </a>
+    <button type="button" onclick="copyStudentPortalUrl()" class="btn btn-secondary btn-sm" style="background: #334155; color: #fff; font-weight: 700; padding: 8px 16px;">
+      📋 نسخ الرابط للواتساب
+    </button>
+  </div>
+</div>
+
+<!-- Stats Overview Grid -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">بنك الأسئلة المعتمدة</div>
+    <div class="stat-value" style="color: var(--primary);">{{ counts.approved_questions }}</div>
+    <div class="stat-desc">من أصل {{ counts.total_questions }} سؤال مسجل</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-label">الامتحانات المنشورة النشطة</div>
+    <div class="stat-value" style="color: var(--success);">{{ counts.active_exams }}</div>
+    <div class="stat-desc">من إجمالي {{ counts.total_exams }} امتحان تم بناؤه</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-label">الطلاب المسجلون</div>
+    <div class="stat-value" style="color: var(--secondary);">{{ counts.students }}</div>
+    <div class="stat-desc">جاهزون لتقديم الامتحانات الإلكترونية</div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-label">محاولات الطلاب المكتملة</div>
+    <div class="stat-value" style="color: var(--warning);">{{ counts.attempts }}</div>
+    <div class="stat-desc">إجابات موثقة ومصححة تلقائياً</div>
+  </div>
+</div>
+
+<!-- AI Analytics & Question Bank Distribution -->
+<div class="form-grid-2" style="margin-bottom: 24px;">
+  
+  <!-- Chart 1: Questions Distribution & Comparison Across Subjects -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header">
+      <div class="card-title" style="display: flex; align-items: center; gap: 8px;">
+        <span>📊</span>
+        <span>مقارنة رصيد الأسئلة بين المواد الدراسية</span>
+      </div>
+      <span class="badge badge-info">{{ subject_comparison|length if subject_comparison else chart_data|length }} مواد</span>
+    </div>
+
+    {% if subject_comparison %}
+      <div style="display: flex; flex-direction: column; gap: 12px; padding: 6px 0;">
+        {% for item in subject_comparison %}
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 700; margin-bottom: 4px;">
+              <span>{{ item.name }}</span>
+              <span>
+                <strong style="color: var(--primary);">{{ item.total_questions }} سؤال</strong>
+                <span style="font-size: 11px; color: var(--text-muted); font-weight: normal;">(معتمد: {{ item.approved_questions }})</span>
+              </span>
+            </div>
+            {% set pct = (item.total_questions / (counts.total_questions or 1) * 100)|round|int %}
+            <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+              <div style="width: {{ pct }}%; height: 100%; background: linear-gradient(90deg, #38bdf8, #2563eb); border-radius: 999px;" title="{{ pct }}% من إجمالي بنك الأسئلة"></div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% elif chart_data %}
+      <div style="display: flex; align-items: flex-end; gap: 16px; height: 180px; padding: 20px 10px 0; border-bottom: 2px solid var(--border); overflow-x: auto;">
+        {% set max_chart_val = max_chart_count or 1 %}
+        {% for item in chart_data %}
+          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; min-width: 65px;">
+            <div style="font-size: 12px; font-weight: 800; color: var(--primary); margin-bottom: 4px;">{{ item.n }}</div>
+            <div style="width: 100%; max-width: 44px; height: {{ (item.n / max_chart_val * 100)|round }}%; min-height: 12px; background: linear-gradient(180deg, #38bdf8, #2563eb); border-radius: 6px 6px 0 0;"></div>
+            <div style="font-size: 11px; font-weight: 700; color: var(--text); margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 75px;" title="{{ item.name }}">{{ item.name }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div style="text-align: center; padding: 36px; color: var(--text-muted); font-size: 13.5px;">
+        لا توجد أسئلة مسجلة حتى الآن. استخرج أسئلتك بسهولة عبر أداة OSR.
+      </div>
+    {% endif %}
+  </div>|  <!-- Chart 1: Questions Distribution & Comparison Across Subjects -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header">
+      <div class="card-title" style="display: flex; align-items: center; gap: 8px;">
+        <span>📊</span>
+        <span>مقارنة رصيد الأسئلة بين المواد الدراسية</span>
+      </div>
+      <span class="badge badge-info">{{ subject_comparison|length if subject_comparison else chart_data|length }} مواد</span>
+    </div>
+
+    {% if subject_comparison %}
+      <div style="display: flex; flex-direction: column; gap: 12px; padding: 6px 0;">
+        {% for item in subject_comparison %}
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 700; margin-bottom: 4px;">
+              <span>{{ item.name }}</span>
+              <span>
+                <strong style="color: var(--primary);">{{ item.total_questions }} سؤال</strong>
+                <span style="font-size: 11px; color: var(--text-muted); font-weight: normal;">(معتمد: {{ item.approved_questions }})</span>
+              </span>
+            </div>
+            {% set pct = (item.total_questions / (counts.total_questions or 1) * 100)|round|int %}
+            <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+              <div style="width: {{ pct }}%; height: 100%; background: linear-gradient(90deg, #38bdf8, #2563eb); border-radius: 999px;" title="{{ pct }}% من إجمالي بنك الأسئلة"></div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% elif chart_data %}
+      <div style="display: flex; align-items: flex-end; gap: 16px; height: 180px; padding: 20px 10px 0; border-bottom: 2px solid var(--border); overflow-x: auto;">
+        {% set max_chart_val = max_chart_count or 1 %}
+        {% for item in chart_data %}
+          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; min-width: 65px;">
+            <div style="font-size: 12px; font-weight: 800; color: var(--primary); margin-bottom: 4px;">{{ item.n }}</div>
+            <div style="width: 100%; max-width: 44px; height: {{ (item.n / max_chart_val * 100)|round }}%; min-height: 12px; background: linear-gradient(180deg, #38bdf8, #2563eb); border-radius: 6px 6px 0 0;"></div>
+            <div style="font-size: 11px; font-weight: 700; color: var(--text); margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 75px;" title="{{ item.name }}">{{ item.name }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div style="text-align: center; padding: 36px; color: var(--text-muted); font-size: 13.5px;">
+        لا توجد أسئلة مسجلة حتى الآن. استخرج أسئلتك بسهولة عبر أداة OSR.
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Chart 2: AI & Language Distribution Intelligence -->
+  <div class="card" style="margin-bottom: 0;">
+    <div class="card-header">
+      <div class="card-title" style="display: flex; align-items: center; gap: 8px;">
+        <span>⚡</span>
+        <span>مؤشرات الذكاء الاصطناعي وجودة الأسئلة</span>
+        <span class="badge-ai-sparkle">AI</span>
+      </div>
+      <span class="badge badge-success">دقة عالية 100%</span>
+    </div>
+
+    <div style="padding: 10px 0;">
+      <!-- Language Bar -->
+      <div style="margin-bottom: 18px;">
+        <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-bottom: 6px;">
+          <span>اللغة العربية (RTL): <strong>{{ lang_stats.ar or 0 }} سؤال</strong></span>
+          <span>اللغة الإنجليزية (LTR): <strong>{{ lang_stats.en or 0 }} سؤال</strong></span>
+        </div>
+        {% set total_lang = (lang_stats.ar or 0) + (lang_stats.en or 0) %}
+        {% set ar_pct = ((lang_stats.ar or 0) / (total_lang or 1) * 100)|round|int %}
+        <div style="width: 100%; height: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden; display: flex;">
+          <div style="width: {{ ar_pct }}%; background: #2563eb;" title="عربي: {{ ar_pct }}%"></div>
+          <div style="width: {{ 100 - ar_pct }}%; background: #0284c7;" title="إنجليزي: {{ 100 - ar_pct }}%"></div>
+        </div>
+      </div>
+
+      <!-- Approval Index -->
+      <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span style="font-size: 13px; font-weight: 800;">نسبة اعتماد بنك الأسئلة:</span>
+          {% set appr_pct = ((counts.approved_questions / (counts.total_questions or 1)) * 100)|round|int %}
+          <span style="font-size: 14px; font-weight: 900; color: #15803d;">{{ appr_pct }}%</span>
+        </div>
+        <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+          <div style="width: {{ appr_pct }}%; background: #10b981; height: 100%;"></div>
+        </div>
+      </div>
+
+      <!-- Quick AI Tips -->
+      <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5; display: flex; gap: 8px; align-items: flex-start;">
+        <span style="font-size: 16px;">💡</span>
+        <span>يقوم محرك الذكاء الاصطناعي (OSR) بفحص أوراق الامتحانات المصورة تلقائياً، والتعرف على خيارات (أ-د) والتأكد من مطابقتها لمعايير وزارة التربية والتعليم.</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Units Distribution Card: Questions by Unit in each Subject -->
+<div class="card" style="margin-bottom: 24px;">
+  <div class="card-header" style="flex-wrap: wrap; gap: 10px;">
+    <div>
+      <div class="card-title" style="display: flex; align-items: center; gap: 8px;">
+        <span>📦</span>
+        <span>توزيع بنك الأسئلة حسب وحدات المنهاج لكل مادة</span>
+      </div>
+      <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 2px;">
+        تفصيل عدد الأسئلة المتوفرة لكل وحدة دراسية ومستويات صعوبتها
+      </div>
+    </div>
+    <a href="{{ url_for('packages_list') }}" class="btn btn-secondary btn-sm">إدارة الوحدات والدروس ↗</a>
+  </div>
+
+  {% if units_by_subject %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+      {% for s_info in units_by_subject %}
+        <div style="background: var(--panel-alt, #f8fafc); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 6px;">
+            <strong style="font-size: 14px; color: #1e3a8a;">📖 {{ s_info.subject_name }}</strong>
+            <span class="badge badge-info" style="font-weight: 800;">{{ s_info.total_questions }} سؤال</span>
+          </div>
+
+          {% if s_info.units %}
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              {% for u in s_info.units %}
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px;">
+                  <span style="font-weight: 700; color: #1e293b;">{{ u.unit_name }}</span>
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-weight: 800; color: var(--primary);">{{ u.question_count }}</span>
+                    <span style="font-size: 10px; color: #15803d; background: #dcfce7; padding: 1px 4px; border-radius: 4px;" title="سهل">{{ u.easy_count or 0 }}س</span>
+                    <span style="font-size: 10px; color: #0369a1; background: #e0f2fe; padding: 1px 4px; border-radius: 4px;" title="متوسط">{{ u.medium_count or 0 }}م</span>
+                    <span style="font-size: 10px; color: #b91c1c; background: #fee2e2; padding: 1px 4px; border-radius: 4px;" title="صعب">{{ u.hard_count or 0 }}ص</span>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 10px;">
+              لا توجد أسئلة مقسمة بوحدات لهذه المادة.
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 13px;">
+      لم يتم تقسيم الأسئلة على وحدات دراسية بعد. يمكنك تقسيمها من صفحة الوحدات والدروس.
+    </div>
+  {% endif %}
+</div>
+
+<!-- Onboarding Interactive Roadmap Modal (Popup) -->
+<div id="onboardingRoadmapModal" class="modal-overlay" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 9999; align-items: center; justify-content: center; padding: 20px;">
+  <div class="card modal-content-animated" style="max-width: 680px; width: 100%; padding: 26px; border-radius: 18px; text-align: right; max-height: 90vh; overflow-y: auto;">
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 22px;">🚀</span>
+        <div>
+          <h3 style="font-size: 17px; font-weight: 900; margin: 0;">خارطة طريق إطلاق أول امتحان مدرسي</h3>
+          <div style="font-size: 11.5px; color: var(--text-muted);">مرشد تفاعلي خطوة بخطوة</div>
+        </div>
+      </div>
+      <button type="button" onclick="closeRoadmapModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted);">&times;</button>
+    </div>
+
+    <!-- Progress Bar -->
+    <div style="margin-bottom: 16px;">
+      <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; margin-bottom: 4px;">
+        <span>نسبة الإنجاز الإجمالية</span>
+        <span>{{ onboarding.completed_count }} من 5 مكتملة ({{ onboarding.percent }}%)</span>
+      </div>
+      <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+        <div style="width: {{ onboarding.percent }}%; height: 100%; background: linear-gradient(90deg, #2563eb, #7c3aed);"></div>
+      </div>
+    </div>
+
+    <!-- 5 Steps List -->
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+      {% for stp in onboarding.steps %}
+        <div style="background: #f8fafc; border: 1px solid {{ '#bbf7d0' if stp.done else '#e2e8f0' }}; border-radius: 10px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 34px; height: 34px; border-radius: 8px; background: {{ '#dcfce7' if stp.done else '#e2e8f0' }}; color: {{ '#15803d' if stp.done else '#475569' }}; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900;">
+              {{ '✓' if stp.done else stp.id }}
+            </div>
+            <div>
+              <div style="font-size: 13.5px; font-weight: 800; color: var(--text);">{{ stp.title }}</div>
+              <div style="font-size: 11.5px; color: var(--text-muted);">{{ stp.desc }}</div>
+            </div>
+          </div>
+
+          <a href="{{ stp.url }}" class="btn {{ 'btn-ghost' if stp.done else 'btn-primary' }} btn-sm" style="font-size: 11.5px; font-weight: 700; padding: 5px 12px; white-space: nowrap;">
+            {{ 'تعديل' if stp.done else stp.btn_text }}
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Footer Controls -->
+    <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 14px; flex-wrap: wrap; gap: 10px;">
+      <label style="font-size: 12.5px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; cursor: pointer;">
+        <input type="checkbox" id="chkDontShowRoadmapAgain" onchange="toggleRoadmapPreference(this)" style="width: 16px; height: 16px; cursor: pointer;">
+        <span>عدم إظهار هذه النافذة الإرشادية مرة أخرى عند فتح البرنامج</span>
+      </label>
+
+      <button type="button" class="btn btn-primary" onclick="closeRoadmapModal()" style="font-weight: 800; padding: 8px 18px;">
+        إغلاق ومتابعة العمل ✓
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function openRoadmapModal() {
+    document.getElementById('onboardingRoadmapModal').style.display = 'flex';
+  }
+
+  function closeRoadmapModal() {
+    document.getElementById('onboardingRoadmapModal').style.display = 'none';
+  }
+
+  function toggleRoadmapPreference(chk) {
+    if (chk.checked) {
+      localStorage.setItem('hide_onboarding_roadmap', 'true');
+    } else {
+      localStorage.removeItem('hide_onboarding_roadmap');
+    }
+  }
+
+  // Auto-open on initial launch unless dismissed
+  window.addEventListener('DOMContentLoaded', () => {
+    const isHidden = localStorage.getItem('hide_onboarding_roadmap') === 'true';
+    const isAllDone = {{ 'true' if onboarding.all_done else 'false' }};
+    if (!isHidden && !isAllDone) {
+      openRoadmapModal();
+    }
+  });
+</script>
+{% endblock %}

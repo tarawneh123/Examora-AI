@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">إنشاء امتحان جديد</div>
+    <div style="font-size: 14px; font-weight: 700;">
+      عدد الأسئلة المختارة: <span class="badge badge-info" id="selectedQuestionCountBadge">0</span>
+    </div>
+  </div>
+
+  <form action="{{ url_for('create_exam_process') }}" method="POST" id="createExamForm">
+    <input type="hidden" name="question_count" id="examQuestionCountInput" value="0">
+
+    <div class="form-grid-3">
+      <div class="form-group">
+        <label style="font-weight: 800; color: #1e3a8a;">نوع ومسمى التقييم:</label>
+        <select name="exam_type" id="examTypeSelect" class="form-control" onchange="handleExamTypeChange(this.value)">
+          <option value="امتحان">امتحان (Exam)</option>
+          <option value="امتحان قصير">امتحان قصير (Short Exam)</option>
+          <option value="Quiz">Quiz (كويز)</option>
+          <option value="امتحان نهائي">امتحان نهائي (Final Exam)</option>
+          <option value="امتحان نصفي">امتحان نصفي (Midterm Exam)</option>
+          <option value="امتحان شهري">امتحان شهري (Monthly Exam)</option>
+          <option value="مخصص">مسمى مخصص...</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>عنوان الاختبار / الامتحان:</label>
+        <input type="text" name="title" id="examTitleInput" class="form-control" placeholder="مثلاً: الامتحان الأول لمبحث..." required autofocus>
+      </div>
+
+      <div class="form-group">
+        <label>المادة الدراسية:</label>
+        <select name="subject_id" id="subjectFilterSelect" class="form-control" required>
+          <option value="">-- اختر المادة أولاً --</option>
+          {% for sub in subjects %}
+            <option value="{{ sub.id }}">{{ sub.name }}</option>
+          {% endfor %}
+        </select>
+        <small style="color: var(--text-muted); font-size: 11.5px;">سيتم عرض الأسئلة المعتمدة لهذه المادة فقط بالأسفل.</small>
+      </div>
+    </div>
+
+    <div class="form-grid-3">
+      <div class="form-group">
+        <label>الوحدة الدراسية المستهدفة (اختياري):</label>
+        <select name="package_id" id="packageFilterSelect" class="form-control">
+          <option value="">كامل المنهاج / جميع الوحدات</option>
+          {% for pkg in packages %}
+            <option value="{{ pkg.id }}" data-subject-id="{{ pkg.subject_id }}">{{ pkg.name }} ({{ pkg.subject_name }})</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>الصف الدراسي:</label>
+        <input type="text" name="class_name" class="form-control" value="{{ s.grade or 'التوجيهي' }}">
+      </div>
+
+      <div class="form-group">
+        <label>الشعبة:</label>
+        <input type="text" name="section" class="form-control" value="{{ s.section or 'أ' }}">
+      </div>
+    </div>
+
+    <div class="form-grid-3">
+      <div class="form-group">
+        <label>مدة الامتحان (بالدقائق):</label>
+        <input type="number" name="duration" class="form-control" value="45" min="5" max="300" required>
+      </div>
+
+      <div class="form-group">
+        <label>كلمة مرور دخول الامتحان (اختياري):</label>
+        <input type="password" name="password" class="form-control" placeholder="اتركه فارغاً لتعطيل الحماية" autocomplete="new-password">
+        <small style="color: var(--text-muted); font-size: 11px;">يطلب من الطالب إدخالها قبل بدء الاختبار.</small>
+      </div>
+
+      <div class="form-group" style="display: flex; align-items: center; gap: 8px; margin-top: 28px;">
+        <input type="checkbox" name="random_order" id="randomOrderCb" value="1" style="width: 18px; height: 18px; cursor: pointer;">
+        <label for="randomOrderCb" style="cursor: pointer; font-weight: 600;">ترتيب عشوائي للأسئلة لكل طالب</label>
+      </div>
+    </div>
+
+    <!-- Questions Selection Section -->
+    <div style="margin-top: 24px; border-top: 1px solid var(--border); padding-top: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+        <div>
+          <h3 style="font-size: 16px; font-weight: 700;">اختيار الأسئلة من بنك الأسئلة المعتمدة</h3>
+          <p style="font-size: 12.5px; color: var(--text-muted);">
+            تظهر تلقائيًا أسئلة المادة المحددة أعلاه فقط مع اسم وحدتها الدراسية.
+          </p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="selectAllQuestions" data-select-all="exam_q_item" style="width: 18px; height: 18px; cursor: pointer;">
+          <label for="selectAllQuestions" style="font-weight: 700; font-size: 13px; cursor: pointer;">تحديد كل الأسئلة الظاهرة</label>
+        </div>
+      </div>
+
+      <div id="noQuestionsForSubjectNotice" style="display: none; background: #fef2f2; border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-sm); padding: 18px; text-align: center; margin-bottom: 16px;">
+        <p style="color: var(--danger); font-weight: 700; font-size: 14px;">لا توجد أسئلة معتمدة لهذه المادة في بنك الأسئلة حتى الآن.</p>
+        <p style="color: var(--text-muted); font-size: 12.5px; margin-top: 4px;">يمكنك استخراج أسئلة جديدة أو إضافة سؤال يدوي للمادة من قسم "إعداد الأسئلة".</p>
+      </div>
+
+      <!-- Smart Difficulty Auto-Picker -->
+      <div style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(124, 58, 237, 0.05)); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div>
+          <div style="font-weight: 800; font-size: 14px; color: #1e3a8a; display: flex; align-items: center; gap: 6px;">
+            <span>⚡</span>
+            <span>التحديد التلقائي المتوازن حسب مستوى الصعوبة</span>
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+            حدد عدد الأسئلة المطلوبة من كل مستوى وسيقوم النظام باختيارها آلياً
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 4px; font-size: 12.5px;">
+            <span class="badge" style="background: #dcfce7; color: #15803d; border: 1px solid #86efac; font-weight: 700;">🟢 سهل:</span>
+            <input type="number" id="autoCountEasy" value="3" min="0" max="100" style="width: 50px; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--border); text-align: center; font-weight: 800;">
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 4px; font-size: 12.5px;">
+            <span class="badge" style="background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; font-weight: 700;">🔵 متوسط:</span>
+            <input type="number" id="autoCountMedium" value="4" min="0" max="100" style="width: 50px; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--border); text-align: center; font-weight: 800;">
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 4px; font-size: 12.5px;">
+            <span class="badge" style="background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; font-weight: 700;">🔴 صعب:</span>
+            <input type="number" id="autoCountHard" value="6" min="0" max="100" style="width: 50px; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--border); text-align: center; font-weight: 800;">
+          </div>
+
+          <button type="button" class="btn btn-primary btn-sm" onclick="autoSelectByDifficulty()" style="padding: 7px 14px; font-weight: 800; box-shadow: 0 2px 8px rgba(37,99,235,0.25);">
+            ⚡ اختيار تلقائي ذكي
+          </button>
+        </div>
+      </div>
+
+      <!-- Difficulty Filter Tabs -->
+      <div style="display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto;">
+        <button type="button" class="btn btn-secondary btn-sm diff-filter-btn active" onclick="filterQuestionsByDiff('ALL', this)" style="border-radius: 999px; font-weight: 700;">
+          جميع المستويات
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm diff-filter-btn" onclick="filterQuestionsByDiff('سهل', this)" style="border-radius: 999px;">
+          🟢 سهل
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm diff-filter-btn" onclick="filterQuestionsByDiff('متوسط', this)" style="border-radius: 999px;">
+          🔵 متوسط
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm diff-filter-btn" onclick="filterQuestionsByDiff('صعب', this)" style="border-radius: 999px;">
+          🔴 صعب
+        </button>
+      </div>
+
+      {% if available_questions %}
+        <div class="table-responsive" style="max-height: 440px; overflow-y: auto;">
+          <table class="table" id="examQuestionsTable">
+            <thead>
+              <tr>
+                <th style="width: 40px; text-align: center;">اختيار</th>
+                <th>نص السؤال</th>
+                <th style="width: 130px;">المادة الدراسية</th>
+                <th style="width: 150px;">الوحدة الدراسية</th>
+                <th style="width: 90px;">الصعوبة</th>
+                <th style="width: 65px;">العلامة</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for q in available_questions %}
+                <tr class="q-row" data-subject-id="{{ q.subject_id }}" data-package-id="{{ q.package_id or '' }}" data-difficulty="{{ q.difficulty or 'متوسط' }}">
+                  <td style="text-align: center;">
+                    <input type="checkbox" name="question_ids" value="{{ q.id }}" class="exam-question-checkbox" data-group="exam_q_item" style="width: 18px; height: 18px; cursor: pointer;">
+                  </td>
+                  <td>
+                    <div style="font-weight: 600; {{ 'direction: ltr; text-align: left;' if q.direction == 'ltr' or q.language == 'en' else '' }}">
+                      {{ q.question }}
+                    </div>
+                  </td>
+                  <td><span class="badge badge-info">{{ q.subject_name or q.subject }}</span></td>
+                  <td><span class="badge badge-neutral" style="font-weight: 700;">{{ q.package_name or q.unit or 'كامل المنهاج' }}</span></td>
+                  <td>
+                    {% if q.difficulty == 'سهل' %}
+                      <span class="badge" style="background: #dcfce7; color: #15803d; border: 1px solid #86efac; font-weight: 700;">🟢 سهل</span>
+                    {% elif q.difficulty == 'صعب' %}
+                      <span class="badge" style="background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; font-weight: 700;">🔴 صعب</span>
+                    {% else %}
+                      <span class="badge" style="background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; font-weight: 700;">🔵 متوسط</span>
+                    {% endif %}
+                  </td>
+                  <td><strong>{{ q.mark }}</strong></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div style="background: var(--warning-bg); border: 1px solid rgba(217, 119, 6, 0.3); border-radius: var(--radius-sm); padding: 18px; text-align: center;">
+          <p style="color: var(--warning); font-weight: 600; font-size: 14px;">لا توجد أسئلة معتمدة في بنك الأسئلة حالياً.</p>
+          <p style="color: var(--text-muted); font-size: 12.5px; margin-top: 4px;">يرجى إضافة أسئلة أو مراجعة الأسئلة المستخرجة واعتمادها أولاً.</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+      <a href="{{ url_for('exams_list') }}" class="btn btn-secondary">إلغاء</a>
+      <button type="submit" class="btn btn-primary btn-lg">✓ إنشاء الامتحان وحفظه</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const allPackagesData = [
+  {% for pkg in packages %}
+    { id: "{{ pkg.id }}", name: {{ pkg.name|tojson }}, subject_id: "{{ pkg.subject_id }}" },
+  {% endfor %}
+];
+
+let currentDiffFilter = 'ALL';
+let lastSelectedSubject = '';
+
+function updatePackageDropdown(subjectId) {
+  const pkgSelect = document.getElementById('packageFilterSelect');
+  if (!pkgSelect) return;
+  pkgSelect.innerHTML = '<option value="">كامل المنهاج / جميع الوحدات</option>';
+  if (!subjectId) return;
+
+  const filtered = allPackagesData.filter(p => String(p.subject_id) === String(subjectId));
+  filtered.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name;
+    pkgSelect.appendChild(opt);
+  });
+}
+
+function updateSelectedCount() {
+  const allChecked = document.querySelectorAll('.exam-question-checkbox:checked');
+  let easy = 0, med = 0, hard = 0;
+  allChecked.forEach(cb => {
+    const row = cb.closest('tr');
+    const d = row ? row.getAttribute('data-difficulty') : 'متوسط';
+    if (d === 'سهل') easy++;
+    else if (d === 'صعب') hard++;
+    else med++;
+  });
+  
+  const badge = document.getElementById('selectedQuestionCountBadge');
+  const countInput = document.getElementById('examQuestionCountInput');
+  if (badge) {
+    badge.innerHTML = `${allChecked.length} <span style="font-size: 11px; font-weight: normal; margin-right: 4px;">(🟢 ${easy} | 🔵 ${med} | 🔴 ${hard})</span>`;
+  }
+  if (countInput) countInput.value = allChecked.length;
+}
+
+function updateQuestionRowsFilter() {
+  const subSelect = document.getElementById('subjectFilterSelect');
+  const pkgSelect = document.getElementById('packageFilterSelect');
+  const selectedSubId = subSelect ? subSelect.value : '';
+  const selectedPkgId = pkgSelect ? pkgSelect.value : '';
+
+  // If subject changed, uncheck previously selected questions from different subjects
+  if (lastSelectedSubject !== selectedSubId) {
+    if (lastSelectedSubject !== '') {
+      document.querySelectorAll('.exam-question-checkbox').forEach(cb => cb.checked = false);
+    }
+    lastSelectedSubject = selectedSubId;
+  }
+
+  const rows = document.querySelectorAll('#examQuestionsTable tbody tr.q-row');
+  let visibleCount = 0;
+
+  rows.forEach(row => {
+    const rowSubId = row.getAttribute('data-subject-id');
+    const rowPkgId = row.getAttribute('data-package-id');
+    const rowDiff = row.getAttribute('data-difficulty') || 'متوسط';
+
+    const matchSub = !selectedSubId || (rowSubId === selectedSubId);
+    const matchPkg = !selectedPkgId || (rowPkgId === selectedPkgId);
+    const matchDiff = (currentDiffFilter === 'ALL') || (rowDiff === currentDiffFilter);
+
+    if (matchSub && matchPkg && matchDiff) {
+      row.style.display = '';
+      visibleCount++;
+    } else {
+      row.style.display = 'none';
+      // DO NOT uncheck questions when switching difficulty filter!
+    }
+  });
+
+  const master = document.getElementById('selectAllQuestions');
+  if (master) {
+    master.checked = false;
+    master.indeterminate = false;
+  }
+
+  const notice = document.getElementById('noQuestionsForSubjectNotice');
+  if (notice) {
+    notice.style.display = (visibleCount === 0 && selectedSubId) ? 'block' : 'none';
+  }
+
+  updateSelectedCount();
+}
+
+function filterQuestionsByDiff(diff, btn) {
+  currentDiffFilter = diff;
+  document.querySelectorAll('.diff-filter-btn').forEach(b => {
+    b.classList.remove('active', 'btn-primary');
+    b.classList.add('btn-secondary');
+  });
+  if (btn) {
+    btn.classList.add('active', 'btn-primary');
+    btn.classList.remove('btn-secondary');
+  }
+  updateQuestionRowsFilter();
+}
+
+function handleExamTypeChange(val) {
+  const titleInput = document.getElementById('examTitleInput');
+  const subSelect = document.getElementById('subjectFilterSelect');
+  const subName = subSelect.options[subSelect.selectedIndex]?.text || '';
+  if (val && val !== 'مخصص' && subName && !subName.includes('--')) {
+    titleInput.value = `${val} - ${subName}`;
+  } else if (val && val !== 'مخصص') {
+    titleInput.value = `${val} 1`;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const subSelect = document.getElementById('subjectFilterSelect');
+  const pkgSelect = document.getElementById('packageFilterSelect');
+
+  if (subSelect) {
+    subSelect.addEventListener('change', () => {
+      updatePackageDropdown(subSelect.value);
+      updateQuestionRowsFilter();
+    });
+  }
+
+  if (pkgSelect) {
+    pkgSelect.addEventListener('change', () => {
+      updateQuestionRowsFilter();
+    });
+  }
+
+  const masterSelect = document.getElementById('selectAllQuestions');
+  if (masterSelect) {
+    masterSelect.addEventListener('change', function() {
+      const visibleRows = document.querySelectorAll('#examQuestionsTable tbody tr.q-row');
+      visibleRows.forEach(r => {
+        if (r.style.display !== 'none') {
+          const cb = r.querySelector('.exam-question-checkbox');
+          if (cb) cb.checked = masterSelect.checked;
+        }
+      });
+      updateSelectedCount();
+    });
+  }
+
+  document.querySelectorAll('.exam-question-checkbox').forEach(cb => {
+    cb.addEventListener('change', updateSelectedCount);
+  });
+
+  // Initial setup
+  if (subSelect && subSelect.value) {
+    updatePackageDropdown(subSelect.value);
+  }
+  updateQuestionRowsFilter();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Examora AI - منصة الاختبارات والتقييم الذكية</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <!-- Firebase Compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="index.html" class="brand-logo">
+      <img src="assets/school_logo.png" alt="Examora AI Logo">
+      <div class="brand-title">
+        <span>Examora AI</span>
+        <span class="brand-subtitle">منظومة التقييم وإدارة الامتحانات الذكية</span>
+      </div>
+    </a>
+    <div class="nav-links">
+      <a href="exam.html" class="nav-btn nav-btn-outline">بوابة الطلاب 🎓</a>
+      <a href="login.html" class="nav-btn nav-btn-solid">دخول المعلمين 🔐</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="hero-badge">
+        <span>✨</span>
+        <span>الجيل الأحدث من منظومات الاختبار والتحليل الذكي</span>
+      </div>
+      <h1>منصة <span>Examora AI</span> للاختبارات الذكية</h1>
+      <p>بيئة متكاملة لإنشاء الاختبارات، المسح الذكي للأسئلة بالذكاء الاصطناعي (OSR)، وإجراء الامتحانات الإلكترونية المباشرة مع الحفظ التلقائي والتحليل الشامل للنتائج.</p>
+    </section>
+
+    <!-- Student Fast Entry Box -->
+    <div class="fast-entry-box">
+      <div class="entry-header">
+        <div style="font-size: 2.2rem; margin-bottom: 6px;">🚀</div>
+        <h3>دخول سريع لاختبار الطالب</h3>
+        <p>أدخل الرقم الوطني ورمز الامتحان (PIN) لبدء التقديم فوراً</p>
+      </div>
+      <form onsubmit="handleFastStudentEntry(event)">
+        <div class="form-group">
+          <label for="homeNationalId">الرقم الوطني / اسم المستخدم للطالب:</label>
+          <input type="text" id="homeNationalId" class="form-control" placeholder="مثال: 2009000001" required>
+        </div>
+        <div class="form-group">
+          <label for="homeExamCode">رمز دخول الامتحان (Exam PIN):</label>
+          <input type="text" id="homeExamCode" class="form-control" placeholder="أدخل الرمز السداسي (مثال: 702072)" required>
+        </div>
+        <button type="submit" class="btn-submit">دخول الامتحان المباشر ⚡</button>
+      </form>
+    </div>
+
+    <!-- Features Overview -->
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🛡️</div>
+        <h3>أمان فائق وسيادة بيانات كاملة</h3>
+        <p>قاعدة بيانات محلية خاصة بالأستاذ غير معتمدة على أي خدمات خارجية لحفظ أسرار وخصوصية الامتحانات.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>محرك OSR الذكي</h3>
+        <p>استخراج الأسئلة من مستندات Word والماسح الضوئي والصور بدقة عالية وفصل الخيارات تلقائياً.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔄</div>
+        <h3>نظام الإعادة واستبدال العلامة</h3>
+        <p>إمكانية تصميم امتحانات تعويضية فردية وتحديث العلامة المعتمدة دون فقدان السجل التاريخي.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">👥</div>
+        <h3>منتدى المعلمين الموحد</h3>
+        <p>مساحة مهنية تفاعلية لتبادل الخبرات والخطط التدريسية ونماذج التقييم بين كافة الأساتذة.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📬</div>
+        <h3>منظومة المقترحات والشكاوى</h3>
+        <p>قناة تواصل رسمية ومباشرة لمتابعة الملاحظات وتحديثات النظام مع إشعارات داخلية فورية.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🖨️</div>
+        <h3>الترويسة والطباعة الرسمية</h3>
+        <p>نماذج طباعة معتمدة متوافقة مع متطلبات وزارة التربية والتعليم والمديريات لجميع الاختبارات.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="container">
+      <p>منظومة Examora AI للتقييم والاختبارات الذكية © 2026 - جميع الحقوق محفوظة</p>
+    </div>
+  </footer>
+
+  <script>
+    function handleFastStudentEntry(e) {
+      e.preventDefault();
+      const nid = document.getElementById('homeNationalId').value.trim();
+      const code = document.getElementById('homeExamCode').value.trim();
+      if (nid && code) {
+        localStorage.setItem('examora_student_id', nid);
+        window.location.href = `exam.html?code=${encodeURIComponent(code)}`;
+      }
+    }
+
+    // Support hash routing e.g. #/e/702072
+    window.addEventListener('DOMContentLoaded', () => {
+      const hash = window.location.hash;
+      if (hash && hash.startsWith('#/e/')) {
+        const code = hash.replace('#/e/', '').trim();
+        if (code) {
+          window.location.href = `exam.html?code=${encodeURIComponent(code)}`;
+        }
+      }
+    });
+  </script>
+</body>
+</html>

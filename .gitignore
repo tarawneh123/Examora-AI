@@ -1,0 +1,14 @@
+# Security & Secret Isolation
+*serviceAccountKey.json
+*.env
+.env*
+
+# Python cache & bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local Databases & Backups (Air-Gapped Local Storage)
+exam_data/*.db
+exam_data/backups/
+/tmp/*.db

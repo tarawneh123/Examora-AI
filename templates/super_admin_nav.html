@@ -1,0 +1,75 @@
+<!-- Super Admin Unified Sub-Navigation Tabs Bar -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; border-bottom: 2px solid #1f2937; padding-bottom: 16px; flex-wrap: wrap; gap: 14px;">
+  <div style="display: flex; align-items: center; gap: 14px;">
+    <div style="width: 50px; height: 50px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 26px;">
+      👑
+    </div>
+    <div>
+      <h1 style="font-size: 21px; font-weight: 900; margin: 0; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+        <span>لوحة تحكم مدير النظام والموزع المركزي</span>
+        <span style="font-size: 11px; font-weight: 800; background: #f59e0b; color: #0f172a; padding: 2px 8px; border-radius: 999px;">Super Admin Portal</span>
+      </h1>
+      <p style="font-size: 12.5px; color: #94a3b8; margin: 3px 0 0;">
+        إدارة التراخيص السحابية، الاشتراكات والمدفوعات، واعتماد المواد للمدارس
+      </p>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 10px; align-items: center;">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary btn-sm" style="background: #334155; color: #ffffff; font-weight: 700;">
+      عرض لوحة القيادة ↗
+    </a>
+    <a href="{{ url_for('super_admin_logout') }}" class="btn btn-danger btn-sm" style="font-weight: 700;">
+      قفل وخروج 🔒
+    </a>
+  </div>
+</div>
+
+<!-- Modern Tab Navigation Items -->
+<div class="super-admin-tabs" style="display: flex; gap: 8px; margin-bottom: 24px; overflow-x: auto; padding-bottom: 4px; border-bottom: 1px solid #334155;">
+  <a href="{{ url_for('super_admin') }}" class="super-tab-btn {{ 'active-tab' if active_admin_tab == 'teachers' else '' }}">
+    👥 1. سجل الأساتذة والتراخيص ({{ teachers|length if teachers else 0 }})
+  </a>
+  <a href="{{ url_for('super_admin_provision_view') }}" class="super-tab-btn {{ 'active-tab' if active_admin_tab == 'provision' else '' }}">
+    ➕ 2. إصدار ترخيص وتوليد حساب جديد
+  </a>
+  <a href="{{ url_for('super_admin_pricing_view') }}" class="super-tab-btn {{ 'active-tab' if active_admin_tab == 'pricing' else '' }}">
+    💳 3. رسوم الاشتراك وبيانات الدفع والتحميل
+  </a>
+  <a href="{{ url_for('super_admin_subjects_view') }}" class="super-tab-btn {{ 'active-tab' if active_admin_tab == 'subjects' else '' }}">
+    📖 4. طلبات اعتماد المواد {% if pending_subjects and pending_subjects|length > 0 %}<span style="background: #ef4444; color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 999px; margin-right: 4px;">{{ pending_subjects|length }}</span>{% endif %}
+  </a>
+  <a href="{{ url_for('super_admin_firebase_view') }}" class="super-tab-btn {{ 'active-tab' if active_admin_tab == 'firebase' else '' }}">
+    ☁️ 5. إعدادات Firebase وسحابة النظام
+  </a>
+</div>
+
+<style>
+  .super-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border-radius: 10px 10px 0 0;
+    font-size: 13.5px;
+    font-weight: 700;
+    text-decoration: none;
+    color: #94a3b8;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-bottom: none;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .super-tab-btn:hover {
+    color: #ffffff;
+    background: #334155;
+  }
+  .super-tab-btn.active-tab {
+    color: #0f172a;
+    background: #f59e0b;
+    border-color: #f59e0b;
+    font-weight: 800;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+  }
+</style>

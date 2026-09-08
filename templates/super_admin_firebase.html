@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إعدادات سحابة Firebase وحساب الخدمة - لوحة السوبر أدمن</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      background-color: #0b0f19;
+      color: #f1f5f9;
+      font-family: 'Cairo', sans-serif;
+      margin: 0;
+      padding: 24px;
+      min-height: 100vh;
+    }
+    .super-container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .super-card {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .form-control-dark {
+      width: 100%;
+      padding: 11px 14px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 13.5px;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+    .form-control-dark:focus {
+      outline: none;
+      border-color: #f59e0b;
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+    }
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .status-badge-dark {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="super-container">
+    <!-- Super Admin Navigation Bar -->
+    {% set active_admin_tab = 'firebase' %}
+    {% include "super_admin_nav.html" %}
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}\
+        {% for category, message in messages %}
+          <div style="background: {{ 'rgba(16, 185, 129, 0.15)' if category == 'success' else 'rgba(239, 68, 68, 0.15)' }}; border: 1px solid {{ '#10b981' if category == 'success' else '#ef4444' }}; color: {{ '#34d399' if category == 'success' else '#fca5a5' }}; padding: 12px 18px; border-radius: 10px; font-size: 13.5px; margin-bottom: 20px;">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Screen 5: Firebase Cloud & Service Account Configuration -->
+    <div class="super-card">
+      <div style="border-bottom: 1px solid #1f2937; padding-bottom: 14px; margin-bottom: 20px;">
+        <h2 style="font-size: 18px; font-weight: 900; margin: 0; color: #f59e0b; display: flex; align-items: center; gap: 8px;">
+          <span>☁️</span>
+          <span>إعدادات سحابة Firebase وحساب الخدمة (Service Account)</span>
+        </h2>
+        <p style="font-size: 13px; color: #94a3b8; margin: 4px 0 0;">
+          الربط السحابي مع مشروع Google Firebase للمصادقة وتفعيل المعلمين عن بعد
+        </p>
+      </div>
+
+      <!-- Current Service Account Status -->
+      <div style="background: #1e293b; padding: 18px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div>
+          <div style="font-weight: 800; font-size: 14.5px; color: #ffffff; margin-bottom: 4px;">
+            حالة مفتاح حساب الخدمة (Service Account Key):
+          </div>
+          {% if has_service_account %}
+            <span class="status-badge-dark" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981;">
+              <span>✓</span>
+              <span>الملف موجود ومفعل بنجاح: {{ sa_filename }}</span>
+            </span>
+          {% else %}
+            <span class="status-badge-dark" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444;">
+              <span>✕</span>
+              <span>لم يتم العثور على ملف serviceAccountKey.json</span>
+            </span>
+          {% endif %}
+        </div>
+
+        <div>
+          <div style="font-size: 12px; color: #94a3b8; margin-bottom: 4px;">مكتبة بايثون (firebase-admin):</div>
+          {% if has_firebase_admin_lib %}
+            <span style="color: #34d399; font-weight: 700; font-size: 12.5px;">مثبتة وتعمل بنجاح ✓</span>
+          {% else %}
+            <span style="color: #fbbf24; font-size: 12.5px;">يعمل بوضع REST API المباشر</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <form action="{{ url_for('super_admin_update_firebase') }}" method="POST" enctype="multipart/form-data">
+        <div class="form-grid-2" style="margin-bottom: 16px;">
+          <div class="form-group">
+            <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #cbd5e1;">مفتاح الويب السحابي (Web API Key):</label>
+            <input type="text" name="firebase_api_key" class="form-control-dark" value="{{ fb_config.apiKey }}" placeholder="AIzaSy..." style="font-family: monospace;">
+          </div>
+
+          <div class="form-group">
+            <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #cbd5e1;">معرّف المشروع (Project ID):</label>
+            <input type="text" name="firebase_project_id" class="form-control-dark" value="{{ fb_config.projectId }}" placeholder="yt-c-c" style="font-family: monospace;">
+          </div>
+        </div>
+
+        <div class="form-grid-2" style="margin-bottom: 16px;">
+          <div class="form-group">
+            <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #cbd5e1;">نطاق التوثيق (Auth Domain):</label>
+            <input type="text" name="firebase_auth_domain" class="form-control-dark" value="{{ fb_config.authDomain }}" placeholder="yt-c-c.firebaseapp.com">
+          </div>
+
+          <div class="form-group">
+            <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #cbd5e1;">رابط قاعدة البيانات (Database URL):</label>
+            <input type="url" name="firebase_database_url" class="form-control-dark" value="{{ fb_config.databaseURL }}" placeholder="https://yt-c-c-default-rtdb.firebaseio.com">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 24px; background: #1e293b; padding: 18px; border-radius: 12px; border: 1px dashed #334155;">
+          <label style="display: block; font-size: 13px; font-weight: 800; margin-bottom: 6px; color: #38bdf8;">
+            📥 رفع أو تحديث ملف مفتاح حساب الخدمة (serviceAccountKey.json):
+          </label>
+          <input type="file" name="service_account_file" class="form-control-dark" accept=".json" style="background: #0f172a; padding: 8px;">
+          <small style="color: #94a3b8; font-size: 11.5px; display: block; margin-top: 6px;">
+            الملف الذي تحمّله من Firebase Console ➔ Project Settings ➔ Service Accounts ➔ Generate new private key
+          </small>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end;">
+          <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; font-weight: 800; border: none; padding: 11px 24px; border-radius: 8px;">
+            ✓ حفظ إعدادات Firebase وتحديث المفتاح
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block actions %}
+  <a href="{{ url_for('curriculum_generator_view') }}" class="btn btn-primary" style="background: linear-gradient(135deg, #2563eb, #7c3aed); font-weight: 800;">
+    💡 اشتقاق الأسئلة من نصوص المنهاج (AI)
+  </a>
+  <a href="{{ url_for('review_questions') }}" class="btn btn-secondary">🔍 مراجعة وتدقيق الأسئلة</a>
+  <button type="button" class="btn btn-secondary" onclick="openManualQuestionWithContext()">+ إضافة سؤال يدوي</button>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">مركز استخراج وتحليل أسئلة الامتحانات (محرك OSR الذكي)</div>
+    <span class="badge badge-info">الخطوة الأولى: تحديد المساق والوحدة</span>
+  </div>
+
+  <form action="{{ url_for('import_process') }}" method="POST" enctype="multipart/form-data">
+    <!-- Step 1 & 2: Subject & Package Progressive Disclosure -->
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label>1. المادة الدراسية المستهدفة:</label>
+        <select name="subject_id" id="subjectFilterSelect" class="form-control" required>
+          <option value="">-- اختر المادة --</option>
+          {% for sub in subjects %}
+            <option value="{{ sub.id }}" data-lang="{{ sub.language }}" data-direction="{{ sub.direction }}">
+              {{ sub.name }} ({{ 'إنجليزي LTR' if sub.language == 'en' else 'عربي RTL' }})
+            </option>
+          {% endfor %}
+        </select>
+        <small style="color: var(--text-muted); font-size: 11.5px;">تحدد المادة اتجاه النصوص ومفاتيح الخيارات تلقائيًا في محرك OSR.</small>
+      </div>
+
+      <div class="form-group">
+        <label>2. الوحدة الدراسية:</label>
+        <div style="display: flex; gap: 8px;">
+          <select name="package_id" id="packageFilterSelect" class="form-control" style="flex: 1;">
+            <option value="">عام / كامل المنهاج</option>
+            {% for pkg in packages %}
+              <option value="{{ pkg.id }}" data-subject-id="{{ pkg.subject_id }}">{{ pkg.name }} ({{ pkg.subject_name }})</option>
+            {% endfor %}
+          </select>
+          <button type="button" class="btn btn-secondary" onclick="openAddPackageInlineModal()" title="إضافة وحدة جديدة لهذه المادة فوراً">+ وحدة جديدة</button>
+        </div>
+        <small style="color: var(--text-muted); font-size: 11.5px;">يمكنك إضافة وحدة جديدة مباشرة دون مغادرة الصفحة.</small>
+      </div>
+    </div>
+
+    <!-- Step 3: Source Content -->
+    <div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+        <h3 style="font-size: 15px; font-weight: 700;">3. اختيار طريقة إدخال الأسئلة</h3>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="openManualQuestionWithContext()" style="color: var(--primary); font-weight: 700;">
+          أو أضف سؤالاً يدوياً لهذه الوحدة ←
+        </button>
+      </div>
+
+      <div class="form-group">
+        <label>أ. رفع صور أو صفحات ورقة الامتحان (PNG, JPG, JPEG, WEBP, PDF, DOCX, TXT):</label>
+        <input type="file" name="exam_images" class="form-control" multiple accept="image/*,.pdf,.docx,.txt">
+        <small style="color: var(--text-muted); font-size: 11.5px;">يدعم رفع عدة صور معًا لورقة الامتحان ذات الصفحات المتعددة بدقة معالجة عالية.</small>
+      </div>
+
+      <div class="form-group" style="margin-top: 16px;">
+        <label>أو ب. لصق نص أسئلة الامتحان مباشرة هنا:</label>
+        <textarea name="exam_text" class="form-control" style="min-height: 140px;" placeholder="يمكنك أيضاً نسخ ولصق نصوص الأسئلة المرقمة مع خياراتها (أ-د أو A-D) هنا مباشرة للتحليل..."></textarea>
+      </div>
+    </div>
+
+    <!-- Instructions banner -->
+    <div style="background: var(--panel-alt); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 18px; margin: 20px 0;">
+      <h4 style="font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px;">معايير ضبط الجودة (QC):</h4>
+      <p style="font-size: 12.5px; color: var(--text-muted);">
+        جميع الأسئلة المستخرجة تبدأ بحالة <strong>"بحاجة لمراجعة" (NEEDS_REVIEW)</strong>. لن يتم إدخال أي سؤال إلى بنك الأسئلة المعتمدة حتى تقوم بمراجعته واعتماده صراحة في شاشة المراجعة.
+      </p>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 10px;">
+      <button type="submit" class="btn btn-primary btn-lg">⚡ بدء الاستخراج والتحليل الفوري عبر OSR</button>
+    </div>
+  </form>
+</div>
+
+<!-- Modal: Add Unit Inline -->
+<div class="modal-overlay" id="addPackageInlineModal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">إضافة وحدة دراسية جديدة فوريًا</div>
+      <button type="button" class="close-btn" data-modal-close>&times;</button>
+    </div>
+    <form id="inlinePackageForm" onsubmit="handleInlinePackageSubmit(event)">
+      <div class="form-group">
+        <label>اسم الوحدة (مثال: الوحدة الأولى: التفاضل والتكامل):</label>
+        <input type="text" id="inlinePackageName" class="form-control" placeholder="اكتب اسم الوحدة..." required>
+      </div>
+      <div class="form-group">
+        <label>الوصف (اختياري):</label>
+        <textarea id="inlinePackageDesc" class="form-control" placeholder="وصف محتوى الوحدة..."></textarea>
+      </div>
+      <div id="inlinePkgError" style="display: none; color: var(--danger); font-size: 13px; margin-top: 8px;"></div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button type="button" class="btn btn-secondary" data-modal-close>إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ واختيار الوحدة</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Contextual Manual Question -->
+<div class="modal-overlay" id="contextualManualQModal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">إضافة سؤال يدوي ضمن المساق الحالي</div>
+      <button type="button" class="close-btn" data-modal-close>&times;</button>
+    </div>
+    <form action="{{ url_for('save_question') }}" method="POST">
+      <input type="hidden" name="status" value="APPROVED">
+      <input type="hidden" name="redirect_to" value="import">
+      <input type="hidden" name="subject_id" id="manualSubIdInput">
+      <input type="hidden" name="package_id" id="manualPkgIdInput">
+
+      <div style="background: var(--panel-alt); padding: 10px 14px; border-radius: 8px; margin-bottom: 14px; font-size: 13px;">
+        المادة: <strong id="manualSubNameDisplay">—</strong> | الوحدة: <strong id="manualPkgNameDisplay">عام</strong>
+      </div>
+
+      <div class="form-group">
+        <label>نص السؤال:</label>
+        <textarea name="question" class="form-control" placeholder="اكتب نص السؤال..." required></textarea>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>الخيار أ / Option A:</label>
+          <input type="text" name="option_a" class="form-control" placeholder="نص الخيار الأول" required>
+        </div>
+        <div class="form-group">
+          <label>الخيار ب / Option B:</label>
+          <input type="text" name="option_b" class="form-control" placeholder="نص الخيار الثاني" required>
+        </div>
+        <div class="form-group">
+          <label>الخيار ج / Option C:</label>
+          <input type="text" name="option_c" class="form-control" placeholder="نص الخيار الثالث" required>
+        </div>
+        <div class="form-group">
+          <label>الخيار د / Option D:</label>
+          <input type="text" name="option_d" class="form-control" placeholder="نص الخيار الرابع" required>
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>الإجابة الصحيحة:</label>
+          <select name="correct" class="form-control" required>
+            <option value="أ" selected>أ (الأولى)</option>
+            <option value="ب">ب (الثانية)</option>
+            <option value="ج">ج (الثالثة)</option>
+            <option value="د">د (الرابعة)</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>العلامة المخصصة:</label>
+          <input type="number" step="0.5" name="mark" class="form-control" value="1.0" required>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button type="button" class="btn btn-secondary" data-modal-close>إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ السؤال فوراً</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openAddPackageInlineModal() {
+  const subSelect = document.getElementById('subjectFilterSelect');
+  if (!subSelect.value) {
+    window.showAlertModal('يرجى اختيار المادة الدراسية أولاً لتتمكن من إضافة وحدة تابعة لها.', 'تحديد المادة مطلوب', '📖');
+    subSelect.focus();
+    return;
+  }
+  document.getElementById('inlinePkgError').style.display = 'none';
+  document.getElementById('inlinePackageName').value = '';
+  document.getElementById('inlinePackageDesc').value = '';
+  document.getElementById('addPackageInlineModal').style.display = 'flex';
+}
+
+function handleInlinePackageSubmit(e) {
+  e.preventDefault();
+  const subSelect = document.getElementById('subjectFilterSelect');
+  const pkgName = document.getElementById('inlinePackageName').value.trim();
+  const pkgDesc = document.getElementById('inlinePackageDesc').value.trim();
+  const errBox = document.getElementById('inlinePkgError');
+
+  fetch('/api/packages/add', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      subject_id: subSelect.value,
+      name: pkgName,
+      description: pkgDesc
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.ok) {
+      const pkgSelect = document.getElementById('packageFilterSelect');
+      const opt = document.createElement('option');
+      opt.value = data.package.id;
+      opt.textContent = data.package.name;
+      opt.setAttribute('data-subject-id', data.package.subject_id);
+      opt.selected = true;
+      pkgSelect.appendChild(opt);
+
+      document.getElementById('addPackageInlineModal').style.display = 'none';
+      if (window.showToast) {
+        window.showToast(`تمت إضافة الوحدة "${data.package.name}" بنجاح!`, 'success');
+      }
+    } else {
+      errBox.textContent = data.error || 'حدث خطأ أثناء حفظ الوحدة';
+      errBox.style.display = 'block';
+    }
+  })
+  .catch(() => {
+    errBox.textContent = 'حدث خطأ في الاتصال بالخادم';
+    errBox.style.display = 'block';
+  });
+}
+
+function openManualQuestionWithContext() {
+  const subSelect = document.getElementById('subjectFilterSelect');
+  if (!subSelect.value) {
+    window.showAlertModal('يرجى اختيار المادة الدراسية أولاً لتحديد سياق السؤال.', 'تحديد المادة مطلوب', '📖');
+    subSelect.focus();
+    return;
+  }
+  const pkgSelect = document.getElementById('packageFilterSelect');
+
+  document.getElementById('manualSubIdInput').value = subSelect.value;
+  document.getElementById('manualSubNameDisplay').textContent = subSelect.options[subSelect.selectedIndex].text;
+  
+  document.getElementById('manualPkgIdInput').value = pkgSelect.value || '';
+  document.getElementById('manualPkgNameDisplay').textContent = pkgSelect.value ? pkgSelect.options[pkgSelect.selectedIndex].text : 'عام';
+
+  document.getElementById('contextualManualQModal').style.display = 'flex';
+}
+</script>
+{% endblock %}

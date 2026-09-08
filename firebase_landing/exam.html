@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تقديم الامتحان - Examora AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/exam.css">
+</head>
+<body>
+
+  <!-- Entry Dialog (Shown if student is not yet authenticated for exam) -->
+  <div id="loginOverlay" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.85); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+    <div class="fast-entry-box" style="width: 90%; max-width: 480px; margin: 0;">
+      <div class="entry-header">
+        <div style="font-size: 2.5rem; margin-bottom: 8px;">🎓</div>
+        <h3>دخول قاعة الامتحان الذكية</h3>
+        <p>يرجى إدخال الرقم الوطني ورمز دخول الامتحان للمتابعة</p>
+      </div>
+      <div id="loginAlert" style="display:none; padding: 10px 14px; background: #fee2e2; color: #b91c1c; border-radius: 8px; font-size: 0.9rem; margin-bottom: 14px; font-weight: 700;"></div>
+      <form id="studentAuthForm" onsubmit="handleStudentExamEntry(event)">
+        <div class="form-group">
+          <label for="stdNationalId">الرقم الوطني / اسم المستخدم للطالب:</label>
+          <input type="text" id="stdNationalId" class="form-control" placeholder="مثال: 2009000001" required autofocus>
+        </div>
+        <div class="form-group">
+          <label for="stdExamCode">رمز دخول الامتحان (Exam PIN):</label>
+          <input type="text" id="stdExamCode" class="form-control" placeholder="رمز الامتحان السداسي" required>
+        </div>
+        <button type="submit" class="btn-submit" id="btnEnterExam">بدء الامتحان الآن 🚀</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Sticky Exam Header -->
+  <header class="exam-header" id="examHeader" style="display: none;">
+    <div class="exam-info">
+      <h2 class="exam-title" id="displayExamTitle">امتحان مبحث...</h2>
+      <div class="student-badge" id="displayStudentName">الطالب: ...</div>
+    </div>
+    <div class="timer-container" id="timerBox">
+      <span>⏱️</span>
+      <span id="timerDisplay">--:--</span>
+    </div>
+  </header>
+
+  <!-- Main Exam Content -->
+  <main class="exam-content" id="examMain" style="display: none;">
+    <div id="questionsContainer"></div>
+  </main>
+
+  <!-- Sticky Footer Navigation -->
+  <footer class="exam-footer-nav" id="examFooter" style="display: none;">
+    <div class="autosave-indicator" id="autosaveStatus">
+      <span>☁️</span>
+      <span id="autosaveText">يتم حفظ إجاباتك تلقائياً...</span>
+    </div>
+    <button class="nav-btn nav-btn-solid" style="background: var(--success); padding: 10px 24px;" onclick="openSubmitModal()">
+      تسليم الامتحان وإنهاء المحاولة ✅
+    </button>
+  </footer>
+
+  <!-- Result Screen (After Submission) -->
+  <div id="resultScreen" style="display: none; max-width: 650px; margin: 60px auto; padding: 36px; background: #fff; border-radius: 16px; box-shadow: var(--shadow-lg); text-align: center; border: 2px solid var(--border);">
+    <div style="font-size: 3.5rem; margin-bottom: 12px;">🏆</div>
+    <h2 style="font-size: 1.8rem; font-weight: 900; color: var(--dark); margin-bottom: 8px;" id="resStudentTitle">أحسنت صنعاً!</h2>
+    <p style="color: var(--text-muted); margin-bottom: 24px;">تم تسليم إجاباتك بنجاح واعتمادها في السجل الرسمي للمدرسة.</p>
+    
+    <div style="background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+      <div style="font-size: 0.95rem; color: var(--text-muted); font-weight: 700;">العلامة المحصلة</div>
+      <div style="font-size: 3rem; font-weight: 900; color: var(--primary); margin: 6px 0;" id="resScore">-- / --</div>
+      <div style="font-size: 1.15rem; font-weight: 800;" id="resTier">ممتاز</div>
+    </div>
+
+    <div id="resFeedbackBox" style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; border-radius: 10px; padding: 16px; font-size: 1.05rem; font-weight: 700; margin-bottom: 28px;">
+      رسالة تشجيعية من معلم المادة
+    </div>
+
+    <a href="index.html" class="nav-btn nav-btn-outline" style="display: inline-block; padding: 12px 30px;">العودة للصفحة الرئيسية</a>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/exam.js"></script>
+</body>
+</html>

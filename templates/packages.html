@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block actions %}
+  <button class="btn btn-primary" data-modal-open="addPackageModal">+ إضافة وحدة دراسية جديدة</button>
+<script>
+  function toggleSelectAllPkgs(master) {
+    document.querySelectorAll('.pkg-select-box').forEach(b => b.checked = master.checked);
+    updateSelectedPkgCount();
+  }
+
+  function updateSelectedPkgCount() {
+    const checked = document.querySelectorAll('.pkg-select-box:checked');
+    const btn = document.getElementById('btnBulkDeletePkgs');
+    const counter = document.getElementById('selectedPkgCount');
+    if (counter) counter.textContent = checked.length;
+    if (btn) {
+      btn.style.display = checked.length > 0 ? 'inline-flex' : 'none';
+    }
+  }
+
+  function submitBulkPkgDelete() {
+    const checked = document.querySelectorAll('.pkg-select-box:checked');
+    if (!checked.length) return;
+    if (confirm(`تأكيد حذف (${checked.length}) وحدة دراسية محددة؟`)) {
+      document.getElementById('bulkPkgsForm').submit();
+    }
+  }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+    <div>
+      <div class="card-title">الوحدات والدروس الدراسية</div>
+      <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">تنظيم وتصنيف المناهج وبنوك الأسئلة</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <button type="button" id="btnBulkDeletePkgs" class="btn btn-danger btn-sm" style="display: none; font-weight: 700;" onclick="submitBulkPkgDelete()">
+        🗑️ حذف الوحدات المحددة (<span id="selectedPkgCount">0</span>)
+      </button>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <form method="GET" action="{{ url_for('packages_list') }}" style="display: flex; gap: 8px;">
+        <select name="subject_id" class="form-control" style="width: 200px;" onchange="this.form.submit()">
+          <option value="">جميع المواد</option>
+          {% for sub in subjects %}
+            <option value="{{ sub.id }}" {{ 'selected' if selected_subject_id == sub.id else '' }}>{{ sub.name }}</option>
+          {% endfor %}
+        </select>
+      </form>
+    </div>
+  </div>
+
+  {% if packages %}
+    <form id="bulkPkgsForm" action="{{ url_for('packages_bulk_delete') }}" method="POST">
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width: 38px; text-align: center;">
+                <input type="checkbox" id="selectAllPkgs" onchange="toggleSelectAllPkgs(this)" style="width: 16px; height: 16px; cursor: pointer;">
+              </th>
+              <th>اسم الوحدة الدراسية</th>
+            <th>المادة التابعة لها</th>
+            <th>الوصف وموضوعات الوحدة</th>
+            <th>عدد الأسئلة المعتمدة</th>
+            <th style="width: 180px;">الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pkg in packages %}
+            <tr>
+              <td style="text-align: center;">
+                <input type="checkbox" name="selected_pkg_ids" value="{{ pkg.id }}" class="pkg-select-box" onchange="updateSelectedPkgCount()" style="width: 16px; height: 16px; cursor: pointer;">
+              </td>
+              <td><strong style="font-size: 14.5px;">{{ pkg.name }}</strong></td>
+              <td><span class="badge badge-neutral">{{ pkg.subject_name }}</span></td>
+              <td>{{ pkg.description or '—' }}</td>
+              <td><span class="badge badge-info">{{ pkg.questions_count }} سؤال</span></td>
+              <td>
+                <div style="display: flex; gap: 6px;">
+                  <a href="{{ url_for('question_bank') }}?package_id={{ pkg.id }}" class="btn btn-secondary btn-sm">عرض الأسئلة</a>
+                  <form action="{{ url_for('delete_package', id=pkg.id) }}" method="POST" style="display:inline;" data-confirm="هل أنتِ متأكدة من حذف الوحدة الدراسية ({{ pkg.name }})؟" data-confirm-title="تأكيد حذف الوحدة" data-confirm-btn="نعم، حذف الوحدة">
+                    <button type="submit" class="btn btn-danger btn-sm">حذف</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    </form>
+  {% else %}
+    <div style="text-align: center; padding: 48px 20px;">
+      <div style="font-size: 36px; margin-bottom: 12px;">📦</div>
+      <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 6px;">لم تضفي وحدات دراسية بعد</h3>
+      <p style="color: var(--text-muted); font-size: 13.5px; margin-bottom: 18px;">قسّمي منهاج المادة إلى وحدات أو دروس ليسهل اختيار الأسئلة في الامتحانات.</p>
+      <button class="btn btn-primary" data-modal-open="addPackageModal">+ إضافة وحدة دراسية</button>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Modal: Add Package (Unit) -->
+<div class="modal-overlay" id="addPackageModal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">إضافة وحدة دراسية جديدة</div>
+      <button class="close-btn" data-modal-close>&times;</button>
+    </div>
+    <form action="{{ url_for('add_package') }}" method="POST">
+      <div class="form-group">
+        <label>المادة الدراسية التابعة لها:</label>
+        <select name="subject_id" class="form-control" required>
+          {% for sub in subjects %}
+            <option value="{{ sub.id }}">{{ sub.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>اسم الوحدة (مثال: الوحدة الأولى: الميكانيكا، Unit 1):</label>
+        <input type="text" name="name" class="form-control" placeholder="اكتبي اسم الوحدة..." required autofocus>
+      </div>
+
+      <div class="form-group">
+        <label>وصف الوحدة (اختياري):</label>
+        <textarea name="description" class="form-control" placeholder="ملاحظات أو موضوعات الوحدة..."></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button type="button" class="btn btn-secondary" data-modal-close>إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ الوحدة</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+  function toggleSelectAllPkgs(master) {
+    document.querySelectorAll('.pkg-select-box').forEach(b => b.checked = master.checked);
+    updateSelectedPkgCount();
+  }
+
+  function updateSelectedPkgCount() {
+    const checked = document.querySelectorAll('.pkg-select-box:checked');
+    const btn = document.getElementById('btnBulkDeletePkgs');
+    const counter = document.getElementById('selectedPkgCount');
+    if (counter) counter.textContent = checked.length;
+    if (btn) {
+      btn.style.display = checked.length > 0 ? 'inline-flex' : 'none';
+    }
+  }
+
+  function submitBulkPkgDelete() {
+    const checked = document.querySelectorAll('.pkg-select-box:checked');
+    if (!checked.length) return;
+    if (confirm(`تأكيد حذف (${checked.length}) وحدة دراسية محددة؟`)) {
+      document.getElementById('bulkPkgsForm').submit();
+    }
+  }
+</script>
+{% endblock %}

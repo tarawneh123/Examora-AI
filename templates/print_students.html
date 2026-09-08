@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>كشف سجل الطلاب المعتمد - {{ selected_subject.name if selected_subject else 'جميع المواد' }} - {{ s.school_name }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Cairo', 'Traditional Arabic', sans-serif;
+      color: #000;
+      background: #f8fafc;
+      margin: 0;
+      padding: 0;
+      font-size: 11pt !important;
+    }
+
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #fff !important; font-size: 11pt !important; }
+      .paper-sheet {
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      @page {
+        size: A4 portrait;
+        margin: 10mm 10mm;
+      }
+      tr {
+        page-break-inside: avoid;
+      }
+    }
+
+    .toolbar-bar {
+      background: #0f172a;
+      color: #fff;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      font-size: 13px;
+    }
+
+    .paper-sheet {
+      max-width: 210mm;
+      margin: 16px auto;
+      background: #fff;
+      padding: 10mm 12mm;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+
+    .students-print-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 11pt !important;
+      text-align: center;
+    }
+
+    .students-print-table th, .students-print-table td {
+      border: 1.5px solid #000;
+      padding: 6px 8px;
+      font-size: 11pt !important;
+    }
+
+    .students-print-table th {
+      background-color: #f1f5f9;
+      font-weight: 800;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Action Toolbar (Hidden in Print) -->
+  <div class="toolbar-bar no-print">
+    <div style="font-weight: 800; font-size: 14px; display: flex; align-items: center; gap: 8px;">
+      <span>📑</span>
+      <span>كشف سجل الطلاب المعتمد (طباعة رسمية A4 متوافقة مع أبعاد الصفحة وبدون تواقيع)</span>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <a href="{{ url_for('students_list', subject_id=selected_subject.id if selected_subject else '', class_name=class_filter, section=section_filter) }}" class="btn btn-secondary" style="background: #334155; color: #fff;">← العودة للسجل</a>
+      <button onclick="window.print()" class="btn btn-primary" style="background: #2563eb; font-weight: 800;">🖨️ طباعة الكشف (Ctrl + P)</button>
+    </div>
+  </div>
+
+  <div class="paper-sheet">
+    <!-- Official Exam Header Standard (Jordan Ministry & School) -->
+    <header style="border: 2px solid #000; padding: 10px 14px; margin-bottom: 12px; display: grid; grid-template-columns: 1fr 1.3fr 1fr; align-items: center; direction: rtl; background: #fff;">
+      <!-- Right Side: Directorate & District -->
+      <div style="text-align: right; font-size: 10.5pt; line-height: 1.45; font-weight: 700;">
+        <div>وزارة التربية والتعليم</div>
+        <div>{{ s.directorate_name or 'مديرية التربية والتعليم' }}</div>
+        <div>{{ s.district_name or 'للواء المزار الجنوبي' }}</div>
+        <div>المعلم / المعلمة: <strong>{{ s.teacher_name }}</strong></div>
+      </div>
+
+      <!-- Center Side: Title & Subject -->
+      <div style="text-align: center; line-height: 1.4;">
+        <div style="font-size: 13.5pt; font-weight: 900; margin: 0 0 2px;">المملكة الاردنية الهاشمية</div>
+        <div style="font-size: 12.5pt; font-weight: 900; color: #1e3a8a;">
+          مدرسة {{ s.school_name or 'مدارس ذرى المجد' }}
+        </div>
+        <div style="font-size: 11.5pt; font-weight: 800; margin-top: 4px; padding: 2px 6px; border-bottom: 1.5px solid #000; display: inline-block;">
+          {% if selected_subject %}
+            كشف سجل وبيانات الطلاب المعتمد لمبحث {{ selected_subject.name }}
+          {% else %}
+            كشف سجل وبيانات الطلاب العام
+          {% endif %}
+        </div>
+        <div style="font-size: 10pt; font-weight: 700; margin-top: 3px;">
+          العام الدراسي: {{ s.academic_year or '2025 - 2026م' }}
+        </div>
+      </div>
+
+      <!-- Left Side: School Logo and Meta -->
+      <div style="display: flex; flex-direction: column; align-items: center; text-align: center; font-size: 10.5pt; font-weight: 700;">
+        {% if school_logo_url %}
+          <img src="{{ school_logo_url }}" alt="شعار المدرسة" style="max-height: 55px; max-width: 65px; object-fit: contain; margin-bottom: 2px;">
+        {% endif %}
+        <div>تاريخ الكشف: {{ now_date }}</div>
+        <div>الصف / الشعبة: {{ class_filter or s.grade or 'كافة الشعب' }}</div>
+        <div>العدد الكلي: (<strong>{{ students|length }}</strong> طالب)</div>
+      </div>
+    </header>
+
+    <!-- Students Table (Optimized for A4 portrait without overflow) -->
+    {% if students %}
+      <table class="students-print-table">
+        <thead>
+          <tr>
+            <th style="width: 35px;">#</th>
+            <th style="min-width: 170px; text-align: right;">اسم الطالب / الطالبة</th>
+            <th style="width: 105px;">الصف / الشعبة</th>
+            <th style="width: 120px;">الرقم الوطني</th>
+            <th style="width: 110px;">اسم المستخدم</th>
+            <th style="width: 95px;">كلمة المرور</th>
+            <th style="min-width: 90px;">ملاحظات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for st in students %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td style="text-align: right; font-weight: 800;">{{ st.full_name }}</td>
+              <td>{{ st.class_name or '—' }} ({{ st.section or '—' }})</td>
+              <td><code>{{ st.national_id or '—' }}</code></td>
+              <td><code>{{ st.username }}</code></td>
+              <td><code>{{ st.password }}</code></td>
+              <td></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div style="text-align: center; padding: 40px; color: #64748b; font-size: 12pt;">
+        لا يوجد طلاب يطابقون خيارات الفلترة المحددة.
+      </div>
+    {% endif %}
+  </div>
+
+</body>
+</html>

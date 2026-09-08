@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>كشف العلامات التجميعي الرسمي - {{ selected_subject.name if selected_subject else 'المبحث' }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Cairo', 'Traditional Arabic', sans-serif;
+      color: #000;
+      background: #f8fafc;
+      margin: 0;
+      padding: 0;
+    }
+
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #fff !important; }
+      .report-container {
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      @page {
+        size: A4 landscape;
+        margin: 10mm 8mm;
+      }
+    }
+
+    .report-container {
+      max-width: 280mm;
+      margin: 20px auto;
+      background: #fff;
+      padding: 14mm;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+
+    .report-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      font-size: 11pt;
+      text-align: center;
+    }
+
+    .report-table th, .report-table td {
+      border: 1.5px solid #000;
+      padding: 6px 8px;
+    }
+
+    .report-table th {
+      background-color: #f1f5f9;
+      font-weight: 800;
+    }
+
+    .toolbar-bar {
+      background: #0f172a;
+      color: #fff;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+
+    .filter-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Action Toolbar -->
+  <div class="toolbar-bar no-print">
+    <div style="font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+      <span>📑</span>
+      <span>كشف العلامات التجميعي لمبحث رسمي (جاهز للتسليم للإدارة المدرسية)</span>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <a href="{{ url_for('results_dashboard') }}" class="btn btn-secondary" style="background: #334155; color: #fff;">← العودة لكشوفات النتائج</a>
+      <button onclick="window.print()" class="btn btn-primary" style="background: #2563eb; font-weight: 800;">🖨️ طباعة الكشف الرسمي (Ctrl + P)</button>
+    </div>
+  </div>
+
+  <div style="max-width: 280mm; margin: 20px auto 0;" class="no-print">
+    <!-- Filter Selection Card -->
+    <div class="filter-card">
+      <h3 style="font-size: 15px; font-weight: 800; margin: 0 0 14px; color: #1e293b;">
+        تخصيص الكشف التجميعي:
+      </h3>
+      <form action="{{ url_for('consolidated_report') }}" method="GET" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; align-items: flex-end;">
+        <div class="form-group">
+          <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 4px;">المادة الدراسية (المبحث):</label>
+          <select name="subject_id" class="form-control" onchange="this.form.submit()" required>
+            <option value="">-- اختر المادة --</option>
+            {% for sub in subjects %}
+              <option value="{{ sub.id }}" {{ 'selected' if selected_subject and selected_subject.id == sub.id else '' }}>
+                {{ sub.name }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 4px;">الصف الدراسي:</label>
+          <input type="text" name="class_name" class="form-control" value="{{ class_filter }}" placeholder="مثال: الحادي عشر">
+        </div>
+
+        <div class="form-group">
+          <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 4px;">الشعبة:</label>
+          <input type="text" name="section" class="form-control" value="{{ section_filter }}" placeholder="مثال: أ أو ب">
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="padding: 10px 18px; font-weight: 800;">
+          تحديث الكشف ↻
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="report-container">
+    <!-- Official Exam Header -->
+    {% include "components/official_header.html" %}
+
+    <div style="text-align: center; margin: 12px 0; font-size: 14pt; font-weight: 900; text-decoration: underline;">
+      كشف علامات الطلاب التجميعي لمبحث {{ selected_subject.name if selected_subject else '' }} - {{ class_filter or 'كافة الشعب' }}
+    </div>
+
+    {% if student_matrix and selected_exams %}
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th style="width: 40px;">#</th>
+            <th style="min-width: 170px; text-align: right;">اسم الطالب / الطالبة</th>
+            <th style="min-width: 100px;">الرقم الوطني / الدخول</th>
+            {% for ex in selected_exams %}
+              <th>
+                <div>{{ ex.title }}</div>
+                <div style="font-size: 9pt; color: #475569; font-weight: normal;">(من {{ ex.total_marks or 40 }})</div>
+              </th>
+            {% endfor %}
+            <th style="background-color: #e2e8f0;">المجموع الكلي</th>
+            <th style="background-color: #e2e8f0;">النسبة المئوية</th>
+            <th style="background-color: #e2e8f0;">التقدير العام</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in student_matrix %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td style="text-align: right; font-weight: 700;">{{ row.student.full_name }}</td>
+              <td><code>{{ row.student.national_id or row.student.username }}</code></td>
+              {% for ex in selected_exams %}
+                <td>
+                  {% set score = row.scores.get(ex.id) %}
+                  {% if score is not none %}
+                    <strong>{{ score }}</strong>
+                  {% else %}
+                    <span style="color: #94a3b8;">غائب</span>
+                  {% endif %}
+                </td>
+              {% endfor %}
+              <td style="font-weight: 900; background-color: #f8fafc;">
+                {{ row.total_score }} / {{ total_possible_marks }}
+              </td>
+              <td style="font-weight: 800; background-color: #f8fafc;">
+                {{ row.overall_pct }}%
+              </td>
+              <td style="font-weight: 800;">
+                {% if row.overall_pct >= 90 %}
+                  <span style="color: #15803d;">ممتاز</span>
+                {% elif row.overall_pct >= 80 %}
+                  <span style="color: #0369a1;">جيد جداً</span>
+                {% elif row.overall_pct >= 65 %}
+                  <span style="color: #b45309;">جيد</span>
+                {% elif row.overall_pct >= 50 %}
+                  <span style="color: #475569;">مقبول</span>
+                {% else %}
+                  <span style="color: #b91c1c;">بحاجة لمتابعة</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+
+
+    {% else %}
+      <div style="text-align: center; padding: 40px; color: #64748b;">
+        <p style="font-size: 15px; font-weight: 700;">يرجى اختيار المادة الدراسية لعرض كشف العلامات التجميعي للامتحانات المنفذة.</p>
+      </div>
+    {% endif %}
+  </div>
+
+</body>
+</html>

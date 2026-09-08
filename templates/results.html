@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+    <div>
+      <div class="card-title">سجل نتائج ومحاولات الامتحانات</div>
+      <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">
+        كشوفات علامات الطلاب وتفاصيل المحاولات المعتمدة
+      </div>
+    </div>
+    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+      <a href="{{ url_for('export_results_print', exam_id=selected_exam_id, subject_id=selected_subject_id) }}" target="_blank" class="btn btn-primary btn-sm" style="font-weight: 800;">
+        📑 تصدير وطباعة كشف العلامات (PDF)
+      </a>
+      <a href="{{ url_for('export_results_csv', exam_id=selected_exam_id, subject_id=selected_subject_id) }}" class="btn btn-secondary btn-sm" style="font-weight: 700;">
+        📊 تصدير Excel (CSV)
+      </a>
+      <a href="{{ url_for('consolidated_report') }}" class="btn btn-secondary btn-sm" style="font-weight: 700;">
+        📑 كشف تجميعي للمبحث
+      </a>
+    </div>
+    <span class="badge badge-info">{{ attempts|length }} محاولة مسجلة</span>
+  </div>
+
+  <!-- Subject & Exam Dropdown Filters -->
+  <form action="{{ url_for('results_dashboard') }}" method="GET" style="background: var(--panel-alt, #f8fafc); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; align-items: flex-end;">
+      
+      <div class="form-group" style="margin-bottom: 0;">
+        <label style="font-size: 13px; font-weight: 700; margin-bottom: 4px; display: block; color: var(--primary);">
+          📚 تصفية حسب المادة:
+        </label>
+        <select name="subject_id" class="form-control" onchange="this.form.submit()">
+          <option value="">-- جميع المواد --</option>
+          {% for s in subjects %}
+            <option value="{{ s.id }}" {{ 'selected' if selected_subject_id == s.id|string else '' }}>{{ s.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 0;">
+        <label style="font-size: 13px; font-weight: 700; margin-bottom: 4px; display: block; color: var(--primary);">
+          📝 تصفية حسب الامتحان:
+        </label>
+        <select name="exam_id" class="form-control" onchange="this.form.submit()">
+          <option value="">-- جميع الامتحانات --</option>
+          {% for ex in exams %}
+            <option value="{{ ex.id }}" {{ 'selected' if selected_exam_id == ex.id|string else '' }}>{{ ex.title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <button type="submit" class="btn btn-primary" style="flex: 1; font-weight: 700; padding: 9px;">تصفية 🔍</button>
+        {% if selected_exam_id %}
+          <a href="{{ url_for('print_exam_result_sheet', exam_id=selected_exam_id) }}" target="_blank" class="btn btn-secondary" style="font-weight: 800; padding: 9px; white-space: nowrap; background: #0f172a; color: #fff;">
+            🖨️ طباعة كشف الامتحان
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </form>
+
+  {% if attempts %}
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width: 50px;">#</th>
+            <th>اسم الطالب</th>
+            <th>المادة</th>
+            <th>الامتحان</th>
+            <th>العلامة</th>
+            <th>النسبة المئوية</th>
+            <th>الحالة</th>
+            <th>تاريخ البدء</th>
+            <th>تاريخ التسليم</th>
+            <th style="width: 150px;">الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in attempts %}
+            <tr>
+              <td><code>{{ a.id }}</code></td>
+              <td><strong>{{ a.student_name }}</strong></td>
+              <td><span class="badge badge-info">{{ a.subject_name or '—' }}</span></td>
+              <td>{{ a.exam_title }}</td>
+              <td>
+                <strong>{{ a.score }} / {{ a.total }}</strong>
+                {% if a.is_manually_adjusted %}
+                  <span title="تم تعديل العلامة يدوياً بواسطة المعلم" style="font-size: 11px; background: rgba(245, 158, 11, 0.15); color: #d97706; padding: 2px 5px; border-radius: 4px; margin-right: 4px;">معدلة ✏️</span>
+                {% endif %}
+              </td>
+              <td>
+                <span style="font-weight: 700; color: {{ 'var(--success)' if a.percentage >= 50 else 'var(--danger)' }};">
+                  {{ '%.1f'|format(a.percentage) }}%
+                </span>
+              </td>
+              <td>
+                {% if a.status == 'SUBMITTED' %}
+                  <span class="badge badge-success">تم التسليم</span>
+                {% elif a.status == 'ACTIVE' %}
+                  <span class="badge badge-warning">قيد التقديم</span>
+                {% else %}
+                  <span class="badge badge-neutral">لم يبدأ</span>
+                {% endif %}
+                {% if a.is_official == 1 %}
+                  <div style="margin-top: 4px;"><span class="badge" style="background: #dcfce7; color: #15803d; font-size: 10px; font-weight: 800;">معتمد رسمياً ⭐</span></div>
+                {% elif a.is_superseded == 1 %}
+                  <div style="margin-top: 4px;"><span class="badge" style="background: #fef3c7; color: #b45309; font-size: 10px; font-weight: 800;">مستبدلة بإعادة 🔄</span></div>
+                {% endif %}
+              </td>
+              <td>{{ a.started_at[5:16] if a.started_at else '—' }}</td>
+              <td>{{ a.submitted_at[5:16] if a.submitted_at else '—' }}</td>
+              <td>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                  <a href="{{ url_for('attempt_result_detail', id=a.id) }}" class="btn btn-secondary btn-sm">التفاصيل</a>
+                  {% if a.status == 'SUBMITTED' %}
+                    <a href="{{ url_for('print_attempt_result', id=a.id) }}" class="btn btn-ghost btn-sm" target="_blank">🖨️ كشف فردي</a>
+                  {% endif %}
+                  <button type="button" class="btn btn-warning btn-sm" onclick="openRetakeModal({{ a.exam_id }}, {{ a.student_id }}, '{{ a.student_name }}', '{{ a.exam_title }}')" title="إنشاء امتحان تعويضي لهذا الطالب فقط">
+                    🔄 إعادة امتحان
+                  </button>
+                  <button type="button" class="btn btn-danger btn-sm" onclick="openDeleteAttemptModal({{ a.id }}, '{{ a.student_name }}', '{{ a.exam_title }}')" title="حذف إداري للمحاولة وإجاباتها">
+                    🗑️ حذف
+                  </button>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div style="text-align: center; padding: 48px 20px; color: var(--text-muted);">
+      <div style="font-size: 36px; margin-bottom: 12px;">📊</div>
+      <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 6px;">لا توجد نتائج مسجلة تطابق التصفية</h3>
+      <p style="font-size: 13.5px;">ستظهر نتائج الطلاب ومحاولاتهم هنا تلقائياً فور تقديمهم للامتحانات.</p>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Retake Exam Modal -->
+<div id="retakeModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
+  <div class="card" style="width: 90%; max-width: 550px; padding: 26px; border-radius: 14px; box-shadow: var(--shadow-lg); max-height: 90vh; overflow-y: auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+      <h3 style="font-size: 17px; font-weight: 800;" id="retakeModalTitle">إنشاء امتحان تعويضي للطالب</h3>
+      <button type="button" onclick="closeRetakeModal()" style="background: none; border: none; font-size: 20px; cursor: pointer;">✕</button>
+    </div>
+
+    <form method="POST" action="/exams/retake/create">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="original_exam_id" id="retakeOrigExamId">
+      <input type="hidden" name="student_id" id="retakeStudentId">
+
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 4px;">عنوان الامتحان التعويضي:</label>
+        <input type="text" name="title" id="retakeExamTitleInput" class="form-control" required>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 4px;">مدة الامتحان (بالدقائق):</label>
+        <input type="number" name="duration" class="form-control" value="30" min="5" max="180" required>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 4px;">سبب إعادة الاختبار (اختياري/للتوثيق):</label>
+        <input type="text" name="reason" class="form-control" placeholder="مثال: تعويض غياب بعذر رسمي أو تدني العلامة">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px;">اختيار الأسئلة من بنك الأسئلة:</label>
+        <div style="max-height: 180px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: #fafafa;">
+          {% for q in questions_pool or [] %}
+            <label style="display: flex; align-items: flex-start; gap: 8px; font-size: 13px; margin-bottom: 8px; cursor: pointer;">
+              <input type="checkbox" name="question_ids" value="{{ q.id }}" checked>
+              <span>{{ q.question }} ({{ q.mark or 1 }} علامات)</span>
+            </label>
+          {% endfor %}
+          {% if not questions_pool %}
+            <p style="font-size: 12px; color: var(--text-muted); margin: 0;">سيتم تلقائياً نسخ أسئلة الامتحان الأصلي ما لم يتم اختيار أسئلة أخرى من بنك الأسئلة.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" onclick="closeRetakeModal()" class="btn btn-secondary">إلغاء</button>
+        <button type="submit" class="btn btn-warning" style="font-weight: 800;">اعتماد وإنشاء الامتحان التعويضي 🚀</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Advanced Delete Attempt Modal -->
+<div id="deleteAttemptModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
+  <div class="card" style="width: 90%; max-width: 480px; padding: 24px; border-radius: 14px; box-shadow: var(--shadow-lg); border: 2px solid #ef4444;">
+    <div style="font-size: 2.2rem; color: #dc2626; margin-bottom: 8px; text-align: center;">⚠️</div>
+    <h3 style="font-size: 17px; font-weight: 900; text-align: center; color: #b91c1c; margin-bottom: 8px;">
+      تأكيد الحذف الإداري المتقدم للمحاولة
+    </h3>
+    <p style="font-size: 13px; color: var(--text-muted); text-align: center; margin-bottom: 16px; line-height: 1.5;" id="deleteAttemptNotice">
+      هذا الإجراء سيؤدي إلى حذف المحاولة وجميع إجابات الطالب واللقطة التاريخية نهائياً.
+    </p>
+
+    <form id="deleteAttemptForm" method="POST" action="">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label style="font-size: 12.5px; font-weight: 700; display: block; margin-bottom: 4px;">سبب الحذف (للتوثيق في سجل الرقابة):</label>
+        <input type="text" name="reason" class="form-control" placeholder="مثال: تقديم بالخطأ / طلب المعلم إعادة المحاولة" required>
+      </div>
+
+      <div style="display: flex; justify-content: center; gap: 10px;">
+        <button type="button" onclick="closeDeleteAttemptModal()" class="btn btn-secondary">إلغاء التراجع</button>
+        <button type="submit" class="btn btn-danger" style="font-weight: 800; background: #dc2626;">تأكيد الحذف النهائي 🗑️</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openRetakeModal(examId, studentId, studentName, examTitle) {
+    document.getElementById('retakeOrigExamId').value = examId;
+    document.getElementById('retakeStudentId').value = studentId;
+    document.getElementById('retakeModalTitle').textContent = 'إنشاء امتحان تعويضي للطالب: ' + studentName;
+    document.getElementById('retakeExamTitleInput').value = 'إعادة امتحان: ' + examTitle + ' - ' + studentName;
+    document.getElementById('retakeModal').style.display = 'flex';
+  }
+  function closeRetakeModal() {
+    document.getElementById('retakeModal').style.display = 'none';
+  }
+
+  function openDeleteAttemptModal(attemptId, studentName, examTitle) {
+    document.getElementById('deleteAttemptNotice').textContent = 'أنت على وشك حذف محاولة الطالب (' + studentName + ') في امتحان (' + examTitle + ') رقم #' + attemptId + ' نهائياً.';
+    document.getElementById('deleteAttemptForm').action = '/results/attempt/' + attemptId + '/delete';
+    document.getElementById('deleteAttemptModal').style.display = 'flex';
+  }
+  function closeDeleteAttemptModal() {
+    document.getElementById('deleteAttemptModal').style.display = 'none';
+  }
+</script>
+
+{% endblock %}

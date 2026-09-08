@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">إدارة النسخ الاحتياطي لقاعدة البيانات</div>
+    <span class="badge badge-success">حماية البيانات المتكاملة</span>
+  </div>
+
+  <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 20px;">
+    يقوم النظام تلقائياً بإنشاء نسخ احتياطية عند الترحيل والعمليات الحساسة. يمكنك أيضاً إنشاء نسخة احتياطية فورية وتنزيلها لحفظ بيانات الأسئلة والامتحانات والنتائج بأمان.
+  </p>
+
+  <form action="{{ url_for('create_backup_action') }}" method="POST" style="margin-bottom: 24px;">
+    <button type="submit" class="btn btn-primary btn-lg">💾 إنشاء نسخة احتياطية الآن</button>
+  </form>
+
+  <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; border-top: 1px solid var(--border); padding-top: 18px;">
+    النسخ الاحتياطية المتوفرة محلياً:
+  </h3>
+
+  {% if backups %}
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>اسم ملف النسخة</th>
+            <th>الحجم</th>
+            <th>تاريخ الإنشاء</th>
+            <th>الإجراء</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for b in backups %}
+            <tr>
+              <td><strong>{{ b.name }}</strong></td>
+              <td>{{ (b.size / 1024)|round(1) }} KB</td>
+              <td>{{ b.created }}</td>
+              <td>
+                <a href="{{ url_for('download_backup_file', filename=b.name) }}" class="btn btn-secondary btn-sm">تنزيل الملف</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p style="color: var(--text-muted); font-size: 13.5px;">لا توجد نسخ احتياطية محفوظة حالياً.</p>
+  {% endif %}
+</div>
+{% endblock %}

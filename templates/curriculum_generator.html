@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block actions %}
+  <a href="{{ url_for('import_center') }}" class="btn btn-secondary">
+    ⚡ استخراج الأسئلة من الصور (OSR)
+  </a>
+  <a href="{{ url_for('review_questions') }}" class="btn btn-secondary">
+    🔍 مراجعة واعتماد الأسئلة
+  </a>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 920px; margin: 0 auto;">
+  
+  <div class="card">
+    <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+      <div>
+        <div class="card-title" style="display: flex; align-items: center; gap: 8px;">
+          <span>💡</span>
+          <span>أداة اشتقاق وتوليد الأسئلة الذكية من نصوص المنهاج</span>
+          <span class="badge-ai-sparkle">AI Engine</span>
+        </div>
+        <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+          ارفع ملف المنهاج (وورد DOCX أو PDF أو صورة أو نص) أو الصق المحتوى مباشرة، وسيقوم النظام باشتقاق أسئلة موضوعية متكاملة لنقلها لتدقيقك واعتمادها.
+        </div>
+      </div>
+    </div>
+
+    <!-- Generation Pipeline Roadmap -->
+    <div style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.06), rgba(124, 58, 237, 0.06)); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-around; flex-wrap: wrap; gap: 12px; text-align: center;">
+      <div style="font-size: 12.5px; font-weight: 700;">
+        <span style="background: #2563eb; color: #fff; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 11px; margin-left: 6px;">1</span>
+        رفع ملف أو لصق النص
+      </div>
+      <span style="color: var(--text-muted);">←</span>
+      <div style="font-size: 12.5px; font-weight: 700;">
+        <span style="background: #7c3aed; color: #fff; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 11px; margin-left: 6px;">2</span>
+        اشتقاق الأسئلة الذكي
+      </div>
+      <span style="color: var(--text-muted);">←</span>
+      <div style="font-size: 12.5px; font-weight: 700;">
+        <span style="background: #f59e0b; color: #fff; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 11px; margin-left: 6px;">3</span>
+        تحديد صعوبة الأسئلة واعتمادها
+      </div>
+      <span style="color: var(--text-muted);">←</span>
+      <div style="font-size: 12.5px; font-weight: 700;">
+        <span style="background: #10b981; color: #fff; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 11px; margin-left: 6px;">4</span>
+        إدراجها ببنك الأسئلة
+      </div>
+    </div>
+
+    <form action="{{ url_for('curriculum_generator_post') }}" method="POST" enctype="multipart/form-data" id="curriculumForm">
+      <div class="form-grid-2" style="margin-bottom: 16px;">
+        <div class="form-group">
+          <label style="font-weight: 700; display: block; margin-bottom: 6px; color: var(--primary);">
+            المادة الدراسية المستهدفة:
+          </label>
+          <select name="subject_id" id="genSubjectSelect" class="form-control" required onchange="handleSubjectChange(this.value)">
+            <option value="">-- اختر المادة --</option>
+            {% for sub in subjects %}
+              <option value="{{ sub.id }}">{{ sub.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight: 700; display: block; margin-bottom: 6px;">الوحدة الدراسية (تحديد أو كتابة جديدة):</label>
+          <select name="package_id" id="genPackageSelect" class="form-control">
+            <option value="">-- اختر المادة أولاً لتظهر وحداتها --</option>
+          </select>
+          <input type="text" name="new_package_name" id="newPackageNameInput" class="form-control" placeholder="أو اكتب اسم وحدة دراسية جديدة هنا (مثال: الوحدة الأولى: تاريخ الأردن الحديث)..." style="margin-top: 6px;">
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label style="font-weight: 700; display: block; margin-bottom: 6px;">عدد الأسئلة المطلوب اشتقاقها:</label>
+        <select name="question_count" class="form-control" style="max-width: 320px;">
+          <option value="5">5 أسئلة اختيار من متعدد</option>
+          <option value="10" selected>10 أسئلة اختيار من متعدد (موصى به)</option>
+          <option value="15">15 سؤالاً</option>
+          <option value="20">20 سؤالاً</option>
+          <option value="30">30 سؤالاً</option>
+        </select>
+      </div>
+
+      <!-- File Upload Box to Transfer Text into the Area -->
+      <div style="background: var(--panel-alt, #f8fafc); border: 2px dashed #93c5fd; border-radius: 12px; padding: 18px; margin-bottom: 18px; text-align: center;">
+        <div style="font-weight: 800; font-size: 14px; color: #1e40af; margin-bottom: 6px;">
+          📂 رفع ملف منهاج لنقل النص تلقائياً إلى صندوق الاشتقاق:
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 12px;">
+          يدعم ملفات وورد (<strong>.docx</strong>)، وملفات <strong>PDF</strong>، وصور صفحات الكتاب (<strong>PNG, JPG</strong>)، والملفات النصية (<strong>TXT</strong>).
+        </p>
+
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;">
+          <input type="file" id="curriculumFileInput" name="curriculum_file" class="form-control" accept=".docx,.doc,.pdf,.png,.jpg,.jpeg,.webp,.txt" style="max-width: 380px;">
+          <button type="button" class="btn btn-secondary" onclick="extractTextFromFile()" id="btnExtractFile" style="font-weight: 800; background: #3b82f6; color: #fff; border: none;">
+            ⚡ استخراج ونقل النص إلى الصندوق
+          </button>
+        </div>
+
+        <div id="fileExtractStatus" style="display: none; font-size: 12.5px; margin-top: 10px; font-weight: 700;"></div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <label style="font-weight: 800; margin: 0; color: #1e3a8a;">
+            نص محتوى الدرس / نصوص المنهاج المستخرجة:
+          </label>
+          <span id="charCountDisplay" style="font-size: 12px; color: var(--text-muted); font-family: monospace;">0 حرف</span>
+        </div>
+        <textarea name="content_text" id="contentTextarea" class="form-control" rows="12" placeholder="الصق هنا نص الدرس أو نصوص الوحدة الدراسية من كتاب الوزارة أو التلخيص التعليمي، أو استخدم أداة رفع الملفات أعلاه لنقل النص تلقائياً...
+(سيقوم المحلل الذكي باستخراج المفاهيم والتواريخ والمعلومات والمصطلحات وصياغة خيارات متعددة متناسقة لكل سؤال)" required style="line-height: 1.6; font-size: 13.5px;" oninput="updateCharCount()"></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+        <div style="font-size: 12.5px; color: var(--text-muted);">
+          ℹ️ سيتم نقل الأسئلة المشتقة مباشرة لشاشة التدقيق لتحديد مستوى صعوبة كل سؤال (سهل / متوسط / صعب) يدوياً قبل اعتماده.
+        </div>
+        <button type="submit" class="btn btn-primary" style="padding: 12px 28px; font-weight: 800; font-size: 14.5px; box-shadow: 0 4px 14px rgba(37,99,235,0.3);">
+          <span>✨ بدء الاشتقاق الذكي للأسئلة</span>
+          <span>←</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+</div>
+
+<script>
+  // All packages data for dynamic client-side filtering
+  const allPackages = [
+    {% for pkg in packages %}
+      { id: "{{ pkg.id }}", name: {{ pkg.name|tojson }}, subject_id: "{{ pkg.subject_id }}" },
+    {% endfor %}
+  ];
+
+  function handleSubjectChange(subjectId) {
+    const pkgSelect = document.getElementById('genPackageSelect');
+    pkgSelect.innerHTML = '';
+
+    if (!subjectId) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = '-- اختر المادة أولاً لتظهر وحداتها --';
+      pkgSelect.appendChild(opt);
+      return;
+    }
+
+    const defaultOpt = document.createElement('option');
+    defaultOpt.value = '';
+    defaultOpt.textContent = '-- اختر وحدة موجودة أو اكتب بالأسفل --';
+    pkgSelect.appendChild(defaultOpt);
+
+    const filtered = allPackages.filter(p => String(p.subject_id) === String(subjectId));
+    if (filtered.length === 0) {
+      const noOpt = document.createElement('option');
+      noOpt.value = '';
+      noOpt.textContent = 'لا توجد وحدات مسجلة لهذه المادة (اكتب اسماً جديداً بالأسفل)';
+      pkgSelect.appendChild(noOpt);
+    } else {
+      filtered.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name;
+        pkgSelect.appendChild(opt);
+      });
+    }
+  }
+
+  function updateCharCount() {
+    const txt = document.getElementById('contentTextarea').value;
+    document.getElementById('charCountDisplay').textContent = `${txt.length} حرف`;
+  }
+
+  // Automatic file extraction via AJAX endpoint
+  function extractTextFromFile() {
+    const fileInput = document.getElementById('curriculumFileInput');
+    const statusDiv = document.getElementById('fileExtractStatus');
+    const btn = document.getElementById('btnExtractFile');
+    const textarea = document.getElementById('contentTextarea');
+
+    if (!fileInput.files || !fileInput.files[0]) {
+      alert('يرجى اختيار ملف أولاً (وورد DOCX أو PDF أو صورة أو نص).');
+      return;
+    }
+
+    const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+
+    btn.disabled = true;
+    btn.textContent = '⏳ جارٍ قراءة واستخراج النصوص...';
+    statusDiv.style.display = 'block';
+    statusDiv.style.color = '#2563eb';
+    statusDiv.textContent = `جارٍ معالجة واستخراج النصوص من ملف (${file.name})...`;
+
+    fetch('{{ url_for("api_curriculum_extract_file") }}', {
+      method: 'POST',
+      body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+      btn.disabled = false;
+      btn.textContent = '⚡ استخراج ونقل النص إلى الصندوق';
+
+      if (data.ok && data.text) {
+        textarea.value = data.text;
+        updateCharCount();
+        if (data.warning) {
+          statusDiv.style.color = '#b45309';
+          statusDiv.innerHTML = `✓ تم استخراج (${data.char_count}) حرفاً من ملف <strong>${data.filename}</strong>.<br><div style="color: #92400e; margin-top: 6px; font-size: 12px; background: #fef3c7; padding: 8px 12px; border-radius: 8px; border: 1px solid #fde047; line-height: 1.5;">${data.warning}</div>`;
+        } else {
+          statusDiv.style.color = '#15803d';
+          statusDiv.innerHTML = `✓ تم بنجاح استخراج (${data.char_count}) حرفاً من ملف <strong>${data.filename}</strong> ونقلها إلى الصندوق. يمكنك الآن مراجعة النص وبدء الاشتقاق!`;
+        }
+      } else {
+        statusDiv.style.color = '#b91c1c';
+        statusDiv.textContent = `⚠️ ${data.error || 'تعذر استخراج النصوص من هذا الملف.'}`;
+      }
+    })
+    .catch(err => {
+      btn.disabled = false;
+      btn.textContent = '⚡ استخراج ونقل النص إلى الصندوق';
+      statusDiv.style.color = '#b91c1c';
+      statusDiv.textContent = 'حدث خطأ أثناء الاتصال بالسيرفر لمعالجة الملف.';
+      console.error(err);
+    });
+  }
+
+  // Automatically trigger extraction when file is chosen
+  document.getElementById('curriculumFileInput').addEventListener('change', function() {
+    if (this.files && this.files[0]) {
+      extractTextFromFile();
+    }
+  });
+</script>
+{% endblock %}

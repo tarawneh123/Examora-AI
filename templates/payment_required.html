@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تفعيل ترخيص المنظومة وبيانات الدفع - {{ s.platform_name or 'منصة الاختبارات' }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      background: radial-gradient(circle at 50% 15%, rgba(37, 99, 235, 0.08), transparent 55%),
+                  radial-gradient(circle at 80% 80%, rgba(245, 158, 11, 0.08), transparent 45%),
+                  var(--bg, #f8fafc);
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      padding: 24px 16px;
+      font-family: 'Cairo', sans-serif;
+      color: var(--text, #0f172a);
+      margin: 0;
+    }
+
+    .payment-card {
+      max-width: 580px;
+      width: 100%;
+      background: #ffffff;
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 20px;
+      padding: 38px 32px;
+      box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.12);
+      text-align: right;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .payment-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 6px;
+      background: linear-gradient(90deg, #f59e0b, #eab308, #2563eb);
+    }
+
+    .status-badge-pending {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 18px;
+    }
+
+    .price-tag-box {
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(245, 158, 11, 0.08));
+      border: 1.5px dashed #2563eb;
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin: 16px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .price-val {
+      font-size: 22px;
+      font-weight: 900;
+      color: #1e3a8a;
+    }
+
+    .instruction-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px 18px;
+      font-size: 13.5px;
+      line-height: 1.65;
+      color: #334155;
+      margin-bottom: 18px;
+    }
+
+    .payment-details-box {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      border-radius: 12px;
+      padding: 16px 18px;
+      font-size: 13.5px;
+      line-height: 1.7;
+      white-space: pre-line;
+      margin-bottom: 22px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="payment-card">
+  <!-- Flash Messages Rendering -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div style="background: {{ '#f0fdf4' if category == 'success' else ('#eff6ff' if category == 'info' else '#fef2f2') }}; border: 1px solid {{ '#bbf7d0' if category == 'success' else ('#bfdbfe' if category == 'info' else '#fecaca') }}; color: {{ '#166534' if category == 'success' else ('#1e40af' if category == 'info' else '#991b1b') }}; padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; text-align: right;">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+  <div style="text-align: center; margin-bottom: 18px;">
+    <div style="width: 60px; height: 60px; margin: 0 auto 12px; background: rgba(245, 158, 11, 0.15); border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 30px;">
+      💳
+    </div>
+    <div class="status-badge-pending">
+      <span>⏳</span>
+      <span>الحساب بانتظار تأكيد الدفع والتفعيل من قِبل الإدارة</span>
+    </div>
+    <h1 style="font-size: 21px; font-weight: 900; margin: 0 0 4px;">بيانات تفعيل ترخيص المنظومة</h1>
+    <p style="font-size: 13px; color: var(--text-muted, #64748b); margin: 0;">
+      أهلاً بك أ. <strong>{{ teacher.teacher_name }}</strong> ({{ teacher.school_name }})
+    </p>
+  </div>
+
+  <!-- Price Tag -->
+  <div class="price-tag-box">
+    <div>
+      <div style="font-size: 12px; color: var(--text-muted); font-weight: 700;">رسوم الترخيص والاستخدام:</div>
+      <div style="font-size: 13px; font-weight: 700; color: #1e293b;">الاشتراك السنوي الشامل</div>
+    </div>
+    <div class="price-val">
+      {{ s.payment_price or '50 دينار أردني / سنوياً' }}
+    </div>
+  </div>
+
+  <!-- Instructions -->
+  <div class="instruction-box">
+    <strong>📋 تعليمات الاشتراك:</strong><br>
+    {{ s.payment_instructions or 'لتفعيل استخدام المنظومة، يرجى إتمام تحويل رسوم الاشتراك السنوي عبر الحساب البنكي أو المحفظة الإلكترونية (كليك CliQ أو زين كاش)، ثم التواصل مع الإدارة ليتم تفعيل حسابك فوراً.' }}
+  </div>
+
+  <!-- Methods -->
+  <div class="payment-details-box">
+    <strong style="display: block; margin-bottom: 6px;">🏦 طرق الدفع المعتمدة:</strong>
+{{ s.payment_methods or '• اسم المستفيد في كليك (CliQ Alias): AWADH2026
+• محفظة زين كاش / أورنج موني: 0798236349
+• للتواصل عبر الواتساب / الهاتف لتأكيد الدفع: 0798236349 - 0791480861' }}
+  </div>
+
+  {% if s.app_download_url %}
+    <div style="margin-bottom: 20px; text-align: center;">
+      <a href="{{ s.app_download_url }}" target="_blank" class="btn btn-secondary" style="width: 100%; padding: 11px; font-weight: 800; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-sizing: border-box; background: #0f172a; color: #fff;">
+        <span>📥 تحميل وتثبيت برنامج المنصة على جهازك</span>
+        <span>↗</span>
+      </a>
+    </div>
+  {% endif %}
+
+  <div style="display: flex; gap: 10px; justify-content: space-between; align-items: center;">
+    <a href="{{ url_for('check_activation') }}" class="btn btn-primary" style="flex: 1; padding: 12px; font-weight: 800; text-align: center; text-decoration: none;">
+      🔄 فحص وتحديث حالة التفعيل
+    </a>
+    <a href="{{ url_for('logout') }}" class="btn btn-secondary" style="padding: 12px 18px; text-decoration: none;">
+      تسجيل الخروج 🚪
+    </a>
+  </div>
+</div>
+
+</body>
+</html>

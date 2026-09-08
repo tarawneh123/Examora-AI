@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إصدار ترخيص وتوليد حساب لمعلم جديد - لوحة السوبر أدمن</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      background-color: #0b0f19;
+      color: #f1f5f9;
+      font-family: 'Cairo', sans-serif;
+      margin: 0;
+      padding: 24px;
+      min-height: 100vh;
+    }
+    .super-container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .super-card {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .form-control-dark {
+      width: 100%;
+      padding: 11px 14px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 13.5px;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+    .form-control-dark:focus {
+      outline: none;
+      border-color: #f59e0b;
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+    }
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .form-grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+    }
+    .voucher-box {
+      background: #064e3b;
+      border: 1px solid #10b981;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.15);
+    }
+    .voucher-text {
+      font-family: monospace;
+      font-size: 13.5px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      color: #ecfdf5;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 16px;
+      border-radius: 10px;
+      border: 1px dashed rgba(255, 255, 255, 0.2);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="super-container">
+    <!-- Super Admin Navigation Bar -->
+    {% set active_admin_tab = 'provision' %}
+    {% include "super_admin_nav.html" %}
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div style="background: {{ 'rgba(16, 185, 129, 0.15)' if category == 'success' else 'rgba(239, 68, 68, 0.15)' }}; border: 1px solid {{ '#10b981' if category == 'success' else '#ef4444' }}; color: {{ '#34d399' if category == 'success' else '#fca5a5' }}; padding: 12px 18px; border-radius: 10px; font-size: 13.5px; margin-bottom: 20px;">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Latest Generated Delivery Voucher (If Available) -->
+    {% if last_voucher %}
+      <div class="voucher-box" id="voucherCard">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+          <div style="font-weight: 800; font-size: 16px; color: #34d399; display: flex; align-items: center; gap: 8px;">
+            <span>🎉</span>
+            <span>تم إصدار الترخيص بنجاح! بطاقة تسليم الأستاذ جاهزة:</span>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" onclick="copyVoucherText()" style="background: #10b981; border: none; font-weight: 800; padding: 8px 16px;">
+            📋 نسخ بيانات التسليم (لإرسالها واتساب / إيميل)
+          </button>
+        </div>
+        <div class="voucher-text" id="voucherContent">{{ last_voucher }}</div>
+      </div>
+    {% endif %}
+
+    <!-- Screen Content: New Teacher Provisioning Form -->
+    <div class="super-card">
+      <div style="border-bottom: 1px solid #1f2937; padding-bottom: 14px; margin-bottom: 20px;">
+        <h2 style="font-size: 18px; font-weight: 900; margin: 0; color: #f59e0b; display: flex; align-items: center; gap: 8px;">
+          <span>➕</span>
+          <span>شاشة إصدار ترخيص وتوليد حساب لمعلم جديد (New Teacher Provisioning)</span>
+        </h2>
+        <p style="font-size: 13px; color: #94a3b8; margin: 4px 0 0;">
+          توليد حساب أستاذ جديد، ربطه سحابياً بـ Firebase، وتحديد مدة الاشتراك بالأيام
+        </p>
+      </div>
+
+      <form action="{{ url_for('super_admin_create_teacher') }}" method="POST">
+        <div class="form-grid-2" style="margin-bottom: 16px;">
+          <div class="form-group">
+            <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #cbd5e1;">اسم المعلم / المعلمة الكامل:</label>
+            <input type="text" name="teacher_name" class="form-control-dark" placeholder="مثال: أ. محمد أحمد الكركي" required autofocus>
+          </div>
+
+          <div class="form-group">
+            <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #cbd5e1;">اسم المدرسة أو المؤسسة التعليمية:</label>
+            <input type="text" name="school_name" class="form-control-dark" placeholder="مثال: مدارس ذرى المجد الثانوية" required>
+          </div>
+        </div>
+
+        <div class="form-grid-3" style="margin-bottom: 16px;">
+          <div class="form-group">
+            <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #cbd5e1;">البريد الإلكتروني المعتمد (Firebase Email):</label>
+            <input type="email" name="email" class="form-control-dark" placeholder="teacher@school.edu.jo" required>
+          </div>
+
+          <div class="form-group">
+            <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #cbd5e1;">كلمة المرور المسلمة للأستاذ (6 خانات كحد أدنى):</label>
+            <input type="text" name="password" class="form-control-dark" placeholder="Pass@2026" value="Pass@2026" minlength="6" required>
+            <small style="color: #f59e0b; font-size: 11px; display: block; margin-top: 3px;">⚠️ شرط Firebase: يجب ألا تقل عن 6 خانات</small>
+          </div>
+
+          <div class="form-group">
+            <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #f59e0b;">مدة الاشتراك بالأيام (Subscription Days):</label>
+            <input type="number" name="subscription_days" class="form-control-dark" value="365" min="1" max="3650" required style="border-color: #f59e0b;">
+            <small style="color: #94a3b8; font-size: 11px; display: block; margin-top: 3px;">صلاحية الحساب قبل الحاجة للتجديد (افتراضي: 365 يوم)</small>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #cbd5e1;">ملاحظات الترخيص أو رقم هاتف العميل (اختياري):</label>
+          <input type="text" name="notes" class="form-control-dark" placeholder="مثال: ترخيص سنوي مدفوع - هاتف 079xxxxxxx">
+        </div>
+
+        <!-- Options Checkboxes -->
+        <div style="background: #1e293b; padding: 16px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 24px; display: flex; flex-direction: column; gap: 12px;">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer; color: #e2e8f0;">
+            <input type="checkbox" name="create_firebase" value="1" checked style="width: 17px; height: 17px;">
+            <span><strong>تسجيل الحساب سحابياً في Firebase Authentication</strong> (لتمكينه من التوثيق السحابي)</span>
+          </label>
+
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer; color: #e2e8f0;">
+            <input type="checkbox" name="send_reset_email" value="1" checked style="width: 17px; height: 17px;">
+            <span><strong>توليد رابط رسمي من Firebase لتعيين كلمة المرور</strong> وإرفاقه في بطاقة التسليم</span>
+          </label>
+
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; cursor: pointer; color: #94a3b8;">
+            <input type="checkbox" name="set_as_active" value="1" style="width: 17px; height: 17px;">
+            <span>تعيين هذا المعلم كمعلم رئيسي نشط على هذا الكمبيوتر الحالي فوراً</span>
+          </label>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <a href="{{ url_for('super_admin') }}" class="btn btn-secondary" style="background: #334155; color: #fff;">
+            ← العودة لسجل الأساتذة
+          </a>
+          <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; font-weight: 900; border: none; padding: 12px 28px; border-radius: 10px; font-size: 15px; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);">
+            🚀 إصدار الترخيص وتفعيل الحساب للأستاذ
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function copyVoucherText() {
+      const text = document.getElementById('voucherContent').innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        alert('✓ تم نسخ بيانات بطاقة تسليم الأستاذ بنجاح إلى الحافظة!');
+      }).catch(err => {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        alert('✓ تم نسخ بيانات التسليم بنجاح!');
+      });
+    }
+  </script>
+
+</body>
+</html>

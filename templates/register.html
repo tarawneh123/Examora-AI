@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تسجيل أستاذ جديد - {{ s.platform_name or 'منصة الاختبارات التعليمية' }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      background: radial-gradient(circle at 50% 15%, rgba(37, 99, 235, 0.08), transparent 55%),
+                  radial-gradient(circle at 80% 80%, rgba(124, 58, 237, 0.06), transparent 45%),
+                  var(--bg, #f8fafc);
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      padding: 24px 16px;
+      font-family: 'Cairo', sans-serif;
+      color: var(--text, #0f172a);
+      margin: 0;
+    }
+
+    .register-card {
+      max-width: 480px;
+      width: 100%;
+      background: #ffffff;
+      border: 1px solid var(--border, #e2e8f0);
+      border-radius: 20px;
+      padding: 36px 30px;
+      box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.15);
+      text-align: right;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .register-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: linear-gradient(90deg, #2563eb, #38bdf8, #7c3aed);
+    }
+
+    .brand-header {
+      text-align: center;
+      margin-bottom: 22px;
+    }
+
+    .brand-icon {
+      width: 56px;
+      height: 56px;
+      margin: 0 auto 10px;
+      background: rgba(37, 99, 235, 0.1);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+    }
+
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0 0 4px;
+    }
+
+    .brand-subtitle {
+      font-size: 13px;
+      color: var(--text-muted, #64748b);
+      margin: 0;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 700;
+      margin-bottom: 5px;
+      color: #1e293b;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      font-family: inherit;
+      font-size: 13px;
+      box-sizing: border-box;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 800;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #ffffff;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+      margin-top: 14px;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    .btn-submit:hover { opacity: 0.95; }
+    .btn-submit:active { transform: scale(0.99); }
+  </style>
+</head>
+<body>
+
+<div class="register-card">
+  <div class="brand-header">
+    <div class="brand-icon">🎓</div>
+    <h1 class="brand-title">تسجيل أستاذ جديد</h1>
+    <p class="brand-subtitle">إنشاء حساب المعلم في منصة الاختبارات التعليمية</p>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}.
+    {% if messages %}
+      {% for category, message in messages %}
+        <div style="background: {{ '#fef2f2' if category in ('error', 'danger') else '#f0fdf4' }}; border: 1px solid {{ '#fecaca' if category in ('error', 'danger') else '#bbf7d0' }}; color: {{ '#991b1b' if category in ('error', 'danger') else '#166534' }}; padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 16px;">
+          {{ message }}
+        </div>
+      {% endfor %}\n    {% endif %}
+  {% endwith %}
+
+  <form action="{{ url_for('register_post') }}" method="POST">
+    <div class="form-group">
+      <label>الاسم الكامل للمعلم / المعلمة:</label>
+      <input type="text" name="teacher_name" class="form-control" placeholder="مثال: أ. محمد أحمد الكركي" required autofocus>
+    </div>
+
+    <div class="form-group">
+      <label>اسم المدرسة أو المؤسسة التعليمية:</label>
+      <input type="text" name="school_name" class="form-control" placeholder="مثال: مدرسة الملك عبد الله الثاني للتميز" required>
+    </div>
+
+    <div class="form-group">
+      <label>البريد الإلكتروني المعتمد للدخول:</label>
+      <input type="email" name="email" class="form-control" placeholder="teacher@school.edu.jo" required>
+    </div>
+
+    <div class="form-group">
+      <label>رقم الهاتف / الواتساب:</label>
+      <input type="text" name="phone" class="form-control" placeholder="مثال: 079xxxxxxx" required>
+    </div>
+
+
+
+    <div class="form-group">
+      <label>كلمة المرور (6 خانات كحد أدنى):</label>
+      <input type="password" name="password" class="form-control" placeholder="••••••••" minlength="6" required>
+    </div>
+
+    <button type="submit" class="btn-submit">تسجيل أستاذ جديد</button>
+  </form>
+
+  <div style="margin-top: 20px; border-top: 1px solid var(--border, #e2e8f0); padding-top: 14px; text-align: center; font-size: 13px;">
+    <span>لديك حساب بالفعل؟</span>
+    <a href="{{ url_for('login') }}" style="color: var(--primary, #2563eb); font-weight: 700; text-decoration: none; margin-right: 4px;">
+      تسجيل الدخول ↗
+    </a>
+  </div>
+</div>
+
+</body>
+</html>

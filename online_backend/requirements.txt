@@ -1,0 +1,4 @@
+# Examora AI Online Cloud Backend Dependencies
+psycopg2-binary>=2.9.9
+gunicorn>=21.2.0
+jinja2>=3.1.2

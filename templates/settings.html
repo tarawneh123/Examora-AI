@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block actions %}
+  <a href="{{ url_for('settings_feedback_view') }}" class="btn btn-secondary" style="font-weight: 700;">
+    🌟 رسائل التقدير والتشجيع للطلاب ↗
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 900px; margin: 0 auto;">
+  <div class="card-header">
+    <div>
+      <div class="card-title">الهوية المدرسية والترويسة الرسمية للامتحانات</div>
+      <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">
+        ضبط بيانات المدرسة والمديرية والشعارات المعتمدة في كافة نماذج الامتحانات والطباعة
+      </div>
+    </div>
+  </div>
+
+  <form action="{{ url_for('save_settings') }}" method="POST" enctype="multipart/form-data">
+    <!-- Section 1: Official Header Identity -->
+    <h3 style="font-size: 15.5px; font-weight: 800; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; color: var(--primary);">
+      1. البيانات الرسمية لترويسة الامتحانات الموحدة
+    </h3>
+
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label>اسم المعلم / المعلمة:</label>
+        <input type="text" name="teacher_name" class="form-control" value="{{ s.teacher_name }}" required>
+      </div>
+
+      <div class="form-group">
+        <label>اسم المدرسة:</label>
+        <input type="text" name="school_name" class="form-control" value="{{ s.school_name }}" required>
+      </div>
+    </div>
+
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label>مديرية التربية والتعليم التابعة لها المدرسة:</label>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 13px; font-weight: 700; color: var(--text-muted); white-space: nowrap;">مديرية التربية والتعليم /</span>
+          <input type="text" name="directorate_name" class="form-control" value="{{ s.directorate_name or 'لواء المزار الجنوبي' }}" placeholder="مثال: لواء المزار الجنوبي أو قصبة الكرك" required>
+        </div>
+        <small style="color: var(--text-muted); font-size: 11.5px; display: block; margin-top: 4px;">
+          تظهر في سطر واحد تحت وزارة التربية والتعليم في يمين الترويسة منعاً للتكرار.
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label>الوزارة والدولة:</label>
+        <input type="text" name="ministry_name" class="form-control" value="{{ s.ministry_name or 'المملكة الأردنية الهاشمية - وزارة التربية والتعليم' }}">
+      </div>
+    </div>
+
+    <div class="form-grid-3" style="margin-top: 10px;">
+      <div class="form-group">
+        <label>العام الدراسي:</label>
+        <input type="text" name="academic_year" class="form-control" value="{{ s.academic_year or '2025 - 2026م' }}" placeholder="مثال: 2025 - 2026م">
+      </div>
+
+      <div class="form-group">
+        <label>الفصل الدراسي:</label>
+        <input type="text" name="semester_name" class="form-control" value="{{ s.semester_name or 'الفصل الدراسي الأول' }}" placeholder="مثال: الفصل الدراسي الأول">
+      </div>
+
+      <div class="form-group">
+        <label>الصف الافتراضي:</label>
+        <input type="text" name="grade" class="form-control" value="{{ s.grade or 'الحادي عشر' }}" placeholder="مثال: الحادي عشر">
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-top: 10px;">
+      <label>نص الملحوظة أسفل ترويسة الامتحان (استخدم {count} لعدد الأسئلة التلقائي):</label>
+      <input type="text" name="exam_default_note" class="form-control" value="{{ s.exam_default_note or 'ملحوظة :- أجب وفقك الله عن جميع الفقرات الآتية ؛ علما بأن عددها ({count}) والاجابة على الماسح الضوئي' }}">
+    </div>
+
+    <!-- Section 2: Logos Management -->
+    <h3 style="font-size: 15.5px; font-weight: 800; margin: 24px 0 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; color: var(--primary);">
+      2. شعار المدرسة وشعار الوزارة في الترويسة
+    </h3>
+
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label style="font-weight: 800;">شعار المدرسة (يظهر في يسار ترويسة الامتحان):</label>
+        {% if s.school_logo_path %}
+          <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 12px;">
+            <img src="{{ url_for('asset_file', name=s.school_logo_path) }}" style="height: 60px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-alt); padding: 4px;">
+            <button type="button" onclick="document.getElementById('deleteSchoolLogo').value='1'; this.parentElement.style.opacity='0.4';" class="btn btn-danger btn-sm">إزالة الشعار</button>
+            <input type="hidden" name="delete_school_logo" id="deleteSchoolLogo" value="0">
+          </div>
+        {% endif %}
+        <input type="file" name="school_logo" class="form-control" accept="image/png,image/jpeg,image/webp">
+      </div>
+
+      <div class="form-group">
+        <label style="font-weight: 800;">شعار وزارة التربية والتعليم / المملكة (يظهر في يمين الترويسة):</label>
+        {% if s.ministry_logo_path %}
+          <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 12px;">
+            <img src="{{ url_for('asset_file', name=s.ministry_logo_path) }}" style="height: 60px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel-alt); padding: 4px;">
+            <button type="button" onclick="document.getElementById('deleteMinistryLogo').value='1'; this.parentElement.style.opacity='0.4';" class="btn btn-danger btn-sm">إزالة الشعار</button>
+            <input type="hidden" name="delete_ministry_logo" id="deleteMinistryLogo" value="0">
+          </div>
+        {% endif %}
+        <input type="file" name="ministry_logo" class="form-control" accept="image/png,image/jpeg,image/webp">
+      </div>
+    </div>
+
+    <!-- Section 3: Visual Appearance -->
+    <h3 style="font-size: 15.5px; font-weight: 800; margin: 24px 0 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; color: var(--primary);">
+      3. التخصيص البصري والخطوط
+    </h3>
+
+    <div class="form-grid-3">
+      <div class="form-group">
+        <label>اللون الأساسي للنظام:</label>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <input type="color" name="primary_color" id="primaryColorInput" value="{{ s.primary_color or '#2563eb' }}" style="width: 50px; height: 40px; padding: 2px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer;">
+          <span style="font-family: monospace; font-size: 14px;">{{ s.primary_color or '#2563eb' }}</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>اللون الثانوي:</label>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <input type="color" name="secondary_color" id="secondaryColorInput" value="{{ s.secondary_color or '#7c3aed' }}" style="width: 50px; height: 40px; padding: 2px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer;">
+          <span style="font-family: monospace; font-size: 14px;">{{ s.secondary_color or '#7c3aed' }}</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>نوع الخط المعتمد:</label>
+        <select name="font_family" class="form-control">
+          {% for f in ['Cairo', 'Tajawal', 'Noto Sans Arabic', 'Noto Kufi Arabic', 'Inter'] %}
+            <option value="{{ f }}" {{ 'selected' if s.font_family == f else '' }}>{{ f }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <!-- Section 4: Security -->
+    <h3 style="font-size: 15.5px; font-weight: 800; margin: 24px 0 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; color: var(--primary);">
+      4. أمان الدخول وكلمات المرور
+    </h3>
+
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label>كلمة المرور الافتراضية للطلاب الجدد:</label>
+        <input type="text" name="student_default_password" class="form-control" value="{{ s.student_default_password or '1234' }}">
+      </div>
+
+      <div class="form-group">
+        <label>تغيير كلمة مرور الإدارة المحلية (اختياري):</label>
+        <input type="password" name="admin_password" class="form-control" placeholder="اتركها فارغة إذا كنت لا تريد التغيير">
+      </div>
+    </div>
+
+    <div style="margin-top: 24px; text-align: left;">
+      <button type="submit" class="btn btn-primary" style="padding: 12px 28px; font-weight: 800; font-size: 14.5px;">
+        ✓ حفظ كافة إعدادات الهوية والترويسة
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

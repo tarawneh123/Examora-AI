@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ exam.title }} - ورقة امتحان وزارة التربية والتعليم</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 10mm 12mm 12mm 12mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    body {
+      font-family: 'Cairo', 'Traditional Arabic', Arial, sans-serif;
+      font-size: 12pt;
+      line-height: 1.5;
+      color: #000;
+      background: #fff;
+      margin: 0;
+      padding: 0;
+    }
+
+    .no-print {
+      display: block;
+    }
+
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      body {
+        background: transparent !important;
+      }
+      .paper-sheet {
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+      .question-block {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        break-inside: avoid-page !important;
+      }
+      .question-title {
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+      }
+      .options-grid-2 {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+    }
+
+    .print-toolbar {
+      background: #0f172a;
+      color: #fff;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      font-size: 14px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      border: none;
+    }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-secondary { background: #475569; color: #fff; }
+
+    .paper-sheet {
+      max-width: 210mm;
+      margin: 15px auto;
+      background: #fff;
+      padding: 10mm 12mm;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    }
+
+    /* Questions List Layout - Strictly matching Ministry of Education Exam Standard */
+    .questions-container {
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    .question-block {
+      margin-bottom: 14px;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+      break-inside: avoid-page !important;
+      display: block;
+      width: 100%;
+    }
+
+    /* Question title: Exactly 12pt Bold as requested */
+    .question-title {
+      font-size: 12pt !important;
+      font-weight: bold !important;
+      line-height: 1.55;
+      margin-bottom: 6px;
+      color: #000;
+      page-break-after: avoid !important;
+      break-after: avoid !important;
+    }
+
+    .question-num {
+      font-size: 12pt !important;
+      font-weight: bold !important;
+      margin-left: 4px;
+    }
+
+    /* Options: Exactly 12pt Normal / Regular in 2 columns */
+    .options-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      column-gap: 20px;
+      row-gap: 6px;
+      font-size: 12pt !important;
+      font-weight: normal !important;
+      line-height: 1.5;
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+
+    .option-item {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      font-size: 12pt !important;
+      font-weight: normal !important;
+      color: #000;
+      line-height: 1.5;
+    }
+
+    .option-letter {
+      font-size: 12pt !important;
+      font-weight: normal !important;
+      white-space: nowrap;
+    }
+
+    .option-text {
+      font-size: 12pt !important;
+      font-weight: normal !important;
+    }
+
+    /* LTR Support for English Exams */
+    .ltr-content {
+      direction: ltr !important;
+      text-align: left !important;
+    }
+    .ltr-content .question-num {
+      margin-left: 0;
+      margin-right: 4px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Print Controls -->
+  <div class="print-toolbar no-print">
+    <div style="font-weight: 700; display: flex; align-items: center; gap: 8px;">
+      <span>🖨️</span>
+      <span>معاينة الطباعة الرسمية A4 - ورقة امتحان وزارة التربية والتعليم</span>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <a href="{{ url_for('exam_manage', id=exam.id) }}" class="btn btn-secondary">← العودة لإدارة الامتحان</a>
+      <button onclick="window.print()" class="btn btn-primary" style="font-weight: 800;">🖨️ طباعة الآن (Ctrl + P)</button>
+    </div>
+  </div>
+
+  <div class="paper-sheet">
+    <!-- Official Exam Header (Jordan Ministry of Education & School Standard) -->
+    {% include "components/official_header.html" %}
+
+    <!-- Questions Container -->
+    <div class="questions-container {{ 'ltr-content ltr-mode' if exam.subject_language == 'en' or exam.subject_direction == 'ltr' or exam.language == 'en' or exam.direction == 'ltr' else '' }}" style="{{ 'direction: ltr !important; text-align: left !important;' if exam.subject_language == 'en' or exam.subject_direction == 'ltr' or exam.language == 'en' or exam.direction == 'ltr' else '' }}">
+      {% for q in questions %}
+        <div class="question-block">
+          <div class="question-title">
+            <span class="question-num">{{ loop.index }} )</span>
+            {{ q.question }}
+            {% if q.mark and q.mark > 0 %}
+              <span style="font-size: 10pt; font-weight: normal; color: #444;">({{ q.mark }} علامة)</span>
+            {% endif %}
+          </div>
+
+          {% if q.option_a or q.option_b or q.option_c or q.option_d %}
+            <div class="options-grid-2">
+              {% if q.option_a %}
+                <div class="option-item">
+                  <span class="option-letter">{{ 'A )' if exam.language == 'en' or q.language == 'en' else 'أ )' }}</span>
+                  <span class="option-text">{{ q.option_a }}</span>
+                </div>
+              {% endif %}
+              {% if q.option_b %}
+                <div class="option-item">
+                  <span class="option-letter">{{ 'B )' if exam.language == 'en' or q.language == 'en' else 'ب )' }}</span>
+                  <span class="option-text">{{ q.option_b }}</span>
+                </div>
+              {% endif %}
+              {% if q.option_c %}
+                <div class="option-item">
+                  <span class="option-letter">{{ 'C )' if exam.language == 'en' or q.language == 'en' else 'ج )' }}</span>
+                  <span class="option-text">{{ q.option_c }}</span>
+                </div>
+              {% endif %}
+              {% if q.option_d %}
+                <div class="option-item">
+                  <span class="option-letter">{{ 'D )' if exam.language == 'en' or q.language == 'en' else 'د )' }}</span>
+                  <span class="option-text">{{ q.option_d }}</span>
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- End of Exam Notice -->
+    <div style="text-align: center; margin-top: 24px; font-weight: 800; font-size: 11pt; border-top: 1.5px solid #000; padding-top: 8px; page-break-inside: avoid;">
+      — انتهت الأسئلة مع أطيب الأمنيات بالنجاح والتوفيق —
+    </div>
+  </div>
+</body>
+</html>

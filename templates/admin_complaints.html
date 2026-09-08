@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 24px;">
+
+  <!-- Admin Stats Overview -->
+  <div class="card" style="padding: 22px; border-radius: 12px; background: #fff; border: 1px solid var(--border);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <h2 style="font-size: 18px; font-weight: 800; color: var(--dark);">إدارة المقترحات والشكاوى المركزية</h2>
+        <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">متابعة طلبات الأساتذة والرد عليها وإرسال إشعارات داخلية فورية للمعلم.</p>
+      </div>
+
+      <!-- Status Filter Tabs -->
+      <div style="display: flex; gap: 6px;">
+        <a href="{{ url_for('admin_complaints_view') }}" class="btn btn-sm {{ 'btn-primary' if not selected_status else 'btn-outline' }}">الكل ({{ total_count }})</a>
+        <a href="{{ url_for('admin_complaints_view', status='NEW') }}" class="btn btn-sm {{ 'btn-primary' if selected_status == 'NEW' else 'btn-outline' }}">الجديدة</a>
+        <a href="{{ url_for('admin_complaints_view', status='IN_PROGRESS') }}" class="btn btn-sm {{ 'btn-primary' if selected_status == 'IN_PROGRESS' else 'btn-outline' }}">قيد المعالجة</a>
+        <a href="{{ url_for('admin_complaints_view', status='RESOLVED') }}" class="btn btn-sm {{ 'btn-primary' if selected_status == 'RESOLVED' else 'btn-outline' }}">المكتملة</a>
+      </div>
+    </div>
+
+    {% if tickets %}
+      <div style="overflow-x: auto;">
+        <table class="table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <thead>
+            <tr style="background: #f8fafc; text-align: right; border-bottom: 2px solid var(--border);">
+              <th style="padding: 10px 14px;">رقم الطلب</th>
+              <th style="padding: 10px 14px;">المعلم / المدرسة</th>
+              <th style="padding: 10px 14px;">النوع</th>
+              <th style="padding: 10px 14px;">العنوان والتفاصيل</th>
+              <th style="padding: 10px 14px;">الأولوية</th>
+              <th style="padding: 10px 14px;">الحالة الحالية</th>
+              <th style="padding: 10px 14px; text-align: center;">الإجراء والرد</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in tickets %}
+              <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 12px 14px; font-weight: 800; color: var(--primary);">
+                  {{ t.ticket_number }}
+                </td>
+                <td style="padding: 12px 14px;">
+                  <div style="font-weight: 700;">{{ t.teacher_name }}</div>
+                  <div style="font-size: 11px; color: var(--text-muted);">{{ t.teacher_email }}</div>
+                </td>
+                <td style="padding: 12px 14px;">
+                  <span class="badge" style="background: #f1f5f9; padding: 3px 8px; border-radius: 6px; font-weight: 700;">
+                    {{ t.type }}
+                  </span>
+                </td>
+                <td style="padding: 12px 14px; max-width: 280px;">
+                  <div style="font-weight: 800; margin-bottom: 4px;">{{ t.title }}</div>
+                  <div style="font-size: 12px; color: var(--text-muted); line-height: 1.4; max-height: 48px; overflow: hidden;">
+                    {{ t.description }}
+                  </div>
+                </td>
+                <td style="padding: 12px 14px;">
+                  {% if t.priority == 'URGENT' %}
+                    <span style="color: #dc2626; font-weight: 800;">🔴 عاجل</span>
+                  {% elif t.priority == 'HIGH' %}
+                    <span style="color: #ea580c; font-weight: 800;">🟠 مرتفع</span>
+                  {% else %}
+                    <span style="color: var(--text-muted);">عادي</span>
+                  {% endif %}
+                </td>
+                <td style="padding: 12px 14px;">
+                  {% if t.status == 'NEW' %}
+                    <span class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 800; padding: 4px 8px; border-radius: 12px;">جديد</span>
+                  {% elif t.status == 'IN_PROGRESS' or t.status == 'IN_REVIEW' %}
+                    <span class="badge" style="background: #fef3c7; color: #b45309; font-weight: 800; padding: 4px 8px; border-radius: 12px;">قيد المراجعة</span>
+                  {% elif t.status == 'RESOLVED' %}
+                    <span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 800; padding: 4px 8px; border-radius: 12px;">تم الحل</span>
+                  {% else %}
+                    <span class="badge" style="background: #f1f5f9; color: var(--text-muted); padding: 4px 8px; border-radius: 12px;">{{ t.status }}</span>
+                  {% endif %}
+                </td>
+                <td style="padding: 12px 14px; text-align: center;">
+                  <button type="button" class="btn btn-outline btn-sm" data-id="{{ t.id }}" data-ticket="{{ t.ticket_number }}" data-teacher="{{ t.teacher_name }}" data-status="{{ t.status }}" onclick="handleOpenModal(this)">
+                    ✍️ الرد وتحديث الحالة
+                  </button>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+        لا توجد أي طلبات واردة في هذا القسم.
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- Respond Modal -->
+<div id="respondModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
+  <div class="card" style="width: 90%; max-width: 540px; padding: 26px; border-radius: 14px; box-shadow: var(--shadow-lg);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+      <h3 style="font-size: 18px; font-weight: 800;" id="modalTicketTitle">الرد على الطلب</h3>
+      <button type="button" onclick="closeRespondModal()" style="background: none; border: none; font-size: 20px; cursor: pointer;">✕</button>
+    </div>
+
+    <form id="respondForm" method="POST" action="">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label style="font-weight: 700; font-size: 13px; display: block; margin-bottom: 6px;">تحديث حالة الطلب:</label>
+        <select name="status" id="modalStatusSelect" class="form-control" required>
+          <option value="IN_REVIEW">قيد المراجعة (IN_REVIEW)</option>
+          <option value="IN_PROGRESS">جارٍ العمل عليها (IN_PROGRESS)</option>
+          <option value="RESOLVED">تم الحل والاعتماد (RESOLVED)</option>
+          <option value="REJECTED">مرفوض مع التوضيح (REJECTED)</option>
+          <option value="CLOSED">مغلق نهائياً (CLOSED)</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 18px;">
+        <label style="font-weight: 700; font-size: 13px; display: block; margin-bottom: 6px;">نص رد الإدارة (سيصل للمعلم كإشعار فوري داخل المنصة):</label>
+        <textarea name="response_text" id="modalResponseText" class="form-control" rows="4" placeholder="اكتب رد وتوضيح الإدارة هنا..." required></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" onclick="closeRespondModal()" class="btn btn-secondary">إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ الرد وإرسال الإشعار 🚀</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function handleOpenModal(btn) {
+    const id = btn.getAttribute('data-id');
+    const ticket = btn.getAttribute('data-ticket');
+    const teacher = btn.getAttribute('data-teacher');
+    const status = btn.getAttribute('data-status');
+    const response = btn.getAttribute('data-response');
+    openRespondModal(id, ticket, teacher, status, response);
+  }
+  function openRespondModal(id, ticketNum, teacher, status, prevResponse) {
+    document.getElementById('modalTicketTitle').textContent = `الرد على الطلب (${ticketNum}) - ${teacher}`;
+    document.getElementById('respondForm').action = `/admin/complaints/${id}/respond`;
+    document.getElementById('modalStatusSelect').value = status || 'IN_PROGRESS';
+    document.getElementById('modalResponseText').value = prevResponse || '';
+    document.getElementById('respondModal').style.display = 'flex';
+  }
+  function closeRespondModal() {
+    document.getElementById('respondModal').style.display = 'none';
+  }
+</script>
+{% endblock %}

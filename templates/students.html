@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block actions %}
+  <a href="{{ url_for('export_students_print', subject_id=selected_subject_id or '', class_name=selected_class or '', section=selected_section or '', q=search_query or '') }}" class="btn btn-primary" target="_blank" style="font-weight: 800;">
+    📑 طباعة كشف الطلاب (حسب التصفية الحالية)
+  </a>
+  <a href="{{ url_for('download_student_template') }}" class="btn btn-secondary" style="font-weight: 800; background: #059669; color: #fff;">
+    📥 تحميل نموذج استيراد الطلاب (Excel/CSV)
+  </a>
+  <a href="{{ url_for('import_students_view') }}" class="btn btn-secondary" style="font-weight: 700;">
+    📤 استيراد كشف طلاب
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+    <div>
+      <div class="card-title">سجل الطلاب ومعلومات الشعب والمواد الدراسية</div>
+      <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">
+        استعراض وإدارة بيانات الطلاب وتوزيعهم حسب المواد المسجلين بها
+      </div>
+    </div>
+    <span class="badge badge-info">{{ students|length }} طالب مسجل</span>
+  </div>
+
+  <!-- Filter by Subject, Class, Section, and Search -->
+  <form action="{{ url_for('students_list') }}" method="GET" style="background: var(--panel-alt, #f8fafc); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: flex-end;">
+      
+      <!-- Filter by Subject -->
+      <div class="form-group" style="margin-bottom: 0;">
+        <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 4px; color: var(--primary);">
+          📚 تصفية حسب المادة:
+        </label>
+        <select name="subject_id" class="form-control" onchange="this.form.submit()">
+          <option value="">-- جميع المواد --</option>
+          {% for sub in subjects %}
+            <option value="{{ sub.id }}" {{ 'selected' if selected_subject_id == sub.id else '' }}>
+              {{ sub.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Filter by Class -->
+      <div class="form-group" style="margin-bottom: 0;">
+        <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 4px;">الصف الدراسي:</label>
+        <input type="text" name="class_name" class="form-control" value="{{ selected_class }}" placeholder="مثال: الحادي عشر">
+      </div>
+
+      <!-- Filter by Section -->
+      <div class="form-group" style="margin-bottom: 0;">
+        <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 4px;">الشعبة:</label>
+        <input type="text" name="section" class="form-control" value="{{ selected_section }}" placeholder="مثال: أ أو ب">
+      </div>
+
+      <!-- Search by Name / National ID -->
+      <div class="form-group" style="margin-bottom: 0;">
+        <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 4px;">بحث بالاسم أو الرقم:</label>
+        <input type="text" name="q" class="form-control" value="{{ search_query }}" placeholder="ابحث باسم الطالب...">
+      </div>
+
+      <div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 10px; font-weight: 700;">
+          تصفية وبحث 🔍
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Students Table -->
+  {% if students %}
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width: 40px;">#</th>
+            <th>اسم الطالب</th>
+            <th>الصف / الشعبة</th>
+            <th>الرقم الوطني / المدرسي</th>
+            <th>بيانات الدخول (اسم المستخدم وكلمة المرور)</th>
+            <th style="width: 120px; text-align: center;">الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for st in students %}
+            <tr>
+              <td><strong style="color: var(--primary);">{{ loop.index }}</strong></td>
+              <td>
+                <strong style="font-size: 14.5px;">{{ st.full_name }}</strong>
+              </td>
+              <td>
+                <span class="badge badge-neutral">{{ st.class_name or '—' }} ({{ st.section or '—' }})</span>
+              </td>
+              <td>
+                <code>{{ st.national_id or '—' }}</code>
+              </td>
+              <td>
+                <div>الدخول: <code style="font-weight: 700; color: #1e3a8a;">{{ st.username }}</code></div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">كلمة المرور: <code>{{ st.password }}</code></div>
+              </td>
+              <td style="text-align: center;">
+                <div style="display: flex; gap: 6px; justify-content: center;">
+                  <a href="{{ url_for('edit_student_view', id=st.id) }}" class="btn btn-secondary btn-sm" title="تعديل بيانات الطالب">
+                    ✏️ تعديل
+                  </a>
+                  <form action="{{ url_for('delete_student', id=st.id) }}" method="POST" style="display:inline;" data-confirm="هل أنت متأكد من حذف الطالب {{ st.full_name }}؟">
+                    <button type="submit" class="btn btn-danger btn-sm" title="حذف الطالب">حذف</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div style="text-align: center; padding: 48px 20px;">
+      <div style="font-size: 36px; margin-bottom: 12px;">👥</div>
+      <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 6px;">لا يوجد طلاب يطابقون شروط البحث</h3>
+      <p style="color: var(--text-muted); font-size: 13.5px; margin-bottom: 18px;">
+        يمكنك تصفية الطلاب أو إدارة سجلاتهم من خلال الشاشات المخصصة بالقائمة الجانبية.
+      </p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

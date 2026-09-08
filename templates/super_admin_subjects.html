@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>طلبات اعتماد المواد الدراسية - لوحة السوبر أدمن</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      background-color: #0b0f19;
+      color: #f1f5f9;
+      font-family: 'Cairo', sans-serif;
+      margin: 0;
+      padding: 24px;
+      min-height: 100vh;
+    }
+    .super-container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .super-card {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .subjects-table-dark {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      text-align: right;
+    }
+    .subjects-table-dark th {
+      background: #1e293b;
+      color: #94a3b8;
+      font-weight: 700;
+      padding: 12px 14px;
+      border-bottom: 2px solid #334155;
+    }
+    .subjects-table-dark td {
+      padding: 12px 14px;
+      border-bottom: 1px solid #1f2937;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="super-container">
+    <!-- Super Admin Navigation Bar -->
+    {% set active_admin_tab = 'subjects' %}
+    {% include "super_admin_nav.html" %}
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div style="background: {{ 'rgba(16, 185, 129, 0.15)' if category == 'success' else 'rgba(239, 68, 68, 0.15)' }}; border: 1px solid {{ '#10b981' if category == 'success' else '#ef4444' }}; color: {{ '#34d399' if category == 'success' else '#fca5a5' }}; padding: 12px 18px; border-radius: 10px; font-size: 13.5px; margin-bottom: 20px;">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Screen 4: Pending Subject Approvals -->
+    <div class="super-card">
+      <div style="border-bottom: 1px solid #1f2937; padding-bottom: 14px; margin-bottom: 20px;">
+        <h2 style="font-size: 18px; font-weight: 900; margin: 0; color: #f59e0b; display: flex; align-items: center; gap: 8px;">
+          <span>📖</span>
+          <span>طلبات اعتماد المواد الدراسية الجديدة (Subject Gatekeeper)</span>
+        </h2>
+        <p style="font-size: 13px; color: #94a3b8; margin: 4px 0 0;">
+          للحفاظ على السيطرة الكاملة على البرنامج: أي مادة يطلب المعلم إضافتها تتطلب موافقة السوبر أدمن حصراً لتفعيلها
+        </p>
+      </div>
+
+      {% if pending_subjects and pending_subjects|length > 0 %}
+        <div style="margin-bottom: 28px;">
+          <h3 style="font-size: 15px; font-weight: 800; color: #ef4444; margin-bottom: 12px;">
+            ⚠️ طلبات جديدة بانتظار الاعتماد والموافقة ({{ pending_subjects|length }} مادة):
+          </h3>
+          <div class="table-responsive">
+            <table class="subjects-table-dark">
+              <thead>
+                <tr>
+                  <th>اسم المادة</th>
+                  <th>رمز المادة (Code)</th>
+                  <th>اللغة والاتجاه</th>
+                  <th>تاريخ الإضافة</th>
+                  <th style="text-align: center;">الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for sub in pending_subjects %}
+                  <tr>
+                    <td style="font-weight: 800; color: #ffffff;">{{ sub.name }}</td>
+                    <td><code>{{ sub.code }}</code></td>
+                    <td>{{ 'الإنجليزية (LTR)' if sub.language == 'en' else 'العربية (RTL)' }}</td>
+                    <td>{{ sub.created_at }}</td>
+                    <td style="text-align: center;">
+                      <div style="display: flex; gap: 8px; justify-content: center;">
+                        <form action="{{ url_for('super_admin_approve_subject', id=sub.id) }}" method="POST" style="display: inline;">
+                          <button type="submit" class="btn btn-primary btn-sm" style="background: #10b981; border: none; font-weight: 800; padding: 6px 14px;">
+                            ✓ موافقة وتفعيل المادة
+                          </button>
+                        </form>
+                        <form action="{{ url_for('super_admin_reject_subject', id=sub.id) }}" method="POST" style="display: inline;" data-confirm="هل أنت متأكد من رفض وحذف هذه المادة؟">
+                          <button type="submit" class="btn btn-danger btn-sm" style="padding: 6px 14px;">
+                            رفض ✕
+                          </button>
+                        </form>
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {% else %}
+        <div style="background: #1e293b; padding: 20px; border-radius: 12px; text-align: center; color: #94a3b8; margin-bottom: 24px;">
+          ✓ لا توجد أي طلبات معلقة لإضافة مواد حالياً. جميع المواد إما معتمدة أو لم تُطلب مواد جديدة بعد.
+        </div>
+      {% endif %}
+
+      <!-- All Active Approved Subjects -->
+      <div style="border-top: 1px solid #1f2937; padding-top: 20px;">
+        <h3 style="font-size: 15px; font-weight: 800; color: #38bdf8; margin-bottom: 12px;">
+          المواد الدراسية المعتمدة والنشطة في المنصة:
+        </h3>
+        <div class="table-responsive">
+          <table class="subjects-table-dark">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>اسم المادة المعتمدة</th>
+                <th>الرمز</th>
+                <th>الاتجاه واللغة</th>
+                <th>الحالة</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sub in active_subjects %}
+                <tr>
+                  <td>{{ loop.index }}</td>
+                  <td style="font-weight: 800; color: #ffffff;">{{ sub.name }}</td>
+                  <td><code>{{ sub.code }}</code></td>
+                  <td>{{ 'الإنجليزية (LTR)' if sub.language == 'en' else 'العربية (RTL)' }}</td>
+                  <td><span class="badge badge-success" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-weight: 700; padding: 3px 8px; border-radius: 6px;">معتمدة ونشطة ✓</span></td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

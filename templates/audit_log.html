@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">سجل تدقيق العمليات الإدارية (Audit Trail)</div>
+    <span class="badge badge-info">{{ logs|length }} عملية مسجلة</span>
+  </div>
+
+  {% if logs %}
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th style="width: 50px;">#</th>
+            <th>المنفّذ (Actor)</th>
+            <th>الإجراء (Action)</th>
+            <th>الكيان (Entity)</th>
+            <th>معرف الكيان</th>
+            <th>الحالة</th>
+            <th>التاريخ والوقت</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in logs %}
+            <tr>
+              <td><code>{{ log.id }}</code></td>
+              <td><strong>{{ log.actor }}</strong></td>
+              <td><code>{{ log.action }}</code></td>
+              <td><span class="badge badge-neutral">{{ log.entity }}</span></td>
+              <td>{{ log.entity_id or '—' }}</td>
+              <td>
+                <span class="badge {{ 'badge-success' if log.status == 'SUCCESS' else 'badge-danger' }}">
+                  {{ log.status }}
+                </span>
+              </td>
+              <td>{{ log.timestamp }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div style="text-align: center; padding: 48px 20px; color: var(--text-muted);">
+      <p>لا توجد عمليات مسجلة في سجل التدقيق حتى الآن.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

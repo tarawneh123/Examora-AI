@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>بوابة مدير النظام المركزي (Super Admin) - منصة الاختبارات</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Firebase Web SDK Compat -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+
+  <style>
+    body {
+      background-color: #090d16;
+      background-image: radial-gradient(circle at 50% 10%, rgba(245, 158, 11, 0.12), transparent 50%),
+                        radial-gradient(circle at 80% 90%, rgba(14, 165, 233, 0.08), transparent 40%);
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      padding: 24px 16px;
+      font-family: 'Cairo', sans-serif;
+      color: #f8fafc;
+      margin: 0;
+    }
+
+    .admin-card {
+      max-width: 440px;
+      width: 100%;
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 20px;
+      padding: 40px 32px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(245, 158, 11, 0.1);
+      text-align: right;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .admin-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 5px;
+      background: linear-gradient(90deg, #f59e0b, #eab308, #d97706);
+    }
+
+    .brand-header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .brand-icon {
+      width: 64px;
+      height: 64px;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      margin: 0 auto 14px;
+    }
+
+    .brand-title {
+      font-size: 21px;
+      font-weight: 800;
+      color: #ffffff;
+      margin: 0 0 6px;
+    }
+
+    .brand-subtitle {
+      font-size: 13px;
+      color: #94a3b8;
+      margin: 0 0 12px;
+    }
+
+    .badge-super {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #cbd5e1;
+    }
+
+    .input-with-icon {
+      position: relative;
+    }
+
+    .input-with-icon input {
+      width: 100%;
+      padding: 11px 14px;
+      padding-left: 42px;
+      border: 1px solid #374151;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 13.5px;
+      background: #0b0f19;
+      color: #ffffff;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .input-with-icon input:focus {
+      outline: none;
+      border-color: #f59e0b;
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+    }
+
+    .input-icon-btn {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .input-icon-btn:hover {
+      color: #ffffff;
+    }
+
+    .alert-box {
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 18px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .alert-box.danger {
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+      border: 1px solid #ef4444;
+      display: flex;
+    }
+
+    .alert-box.success {
+      background: rgba(16, 185, 129, 0.15);
+      color: #6ee7b7;
+      border: 1px solid #10b981;
+      display: flex;
+    }
+
+    .btn-super-submit {
+      width: 100%;
+      padding: 13px 20px;
+      border-radius: 10px;
+      font-size: 14.5px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      border: none;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #0f172a;
+      box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
+      transition: opacity 0.2s, transform 0.1s;
+      margin-top: 10px;
+    }
+
+    .btn-super-submit:hover {
+      opacity: 0.95;
+    }
+
+    .btn-super-submit:active {
+      transform: scale(0.99);
+    }
+
+    .btn-super-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+
+<div class="admin-card">
+  <div class="brand-header">
+    <div class="brand-icon">👑</div>
+    <h1 class="brand-title">بوابة مدير النظام والموزع المركزي</h1>
+    <p class="brand-subtitle">Super Admin Master Access</p>
+    <div class="badge-super">
+      <span>🔒</span>
+      <span>مخصصة لمدير النظام: aa104@yahoo.com</span>
+    </div>
+  </div>
+
+  <!-- Dynamic Alert Box -->
+  <div id="authAlert" class="alert-box">
+    <span id="authAlertIcon">⚠️</span>
+    <span id="authAlertText"></span>
+  </div>
+
+  <!-- Flashed Messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #fca5a5; padding: 10px 14px; border-radius: 10px; font-size: 13px; margin-bottom: 16px;">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <!-- Super Admin Firebase Login Form -->
+  <form id="adminLoginForm" onsubmit="handleAdminLogin(event)">
+    <div class="form-group">
+      <label>بريد مدير النظام المركزي (Super Admin Email):</label>
+      <div class="input-with-icon">
+        <input type="email" id="adminEmail" value="aa104@yahoo.com" placeholder="aa104@yahoo.com" required autofocus>
+        <span class="input-icon-btn">👑</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <label style="margin: 0;">كلمة المرور السحابية (Firebase Password):</label>
+        <a href="{{ url_for('forgot_password') }}" style="font-size: 12px; color: #fbbf24; text-decoration: none; font-weight: 600;">استعادة كلمة المرور؟</a>
+      </div>
+      <div class="input-with-icon">
+        <input type="password" id="adminPassword" placeholder="••••••••" required>
+        <button type="button" class="input-icon-btn" onclick="togglePasswordVisibility('adminPassword', this)">👁️</button>
+      </div>
+    </div>
+
+    <button type="submit" id="adminSubmitBtn" class="btn-super-submit">
+      <span>👑 دخول لوحة السوبر أدمن المركزية</span>
+      <span>←</span>
+    </button>
+  </form>
+
+  <div style="margin-top: 24px; border-top: 1px solid #1f2937; padding-top: 16px; text-align: center;">
+    <a href="{{ url_for('login') }}" style="font-size: 13px; color: #94a3b8; text-decoration: none;">
+      ← الانتقال إلى بوابة المعلمين العادية
+    </a>
+  </div>
+</div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "{{ firebase_config.apiKey or '' }}",
+    authDomain: "{{ firebase_config.authDomain or 'yt-c-c.firebaseapp.com' }}",
+    projectId: "{{ firebase_config.projectId or 'yt-c-c' }}",
+    databaseURL: "{{ firebase_config.databaseURL or 'https://yt-c-c-default-rtdb.firebaseio.com' }}",
+    storageBucket: "{{ firebase_config.storageBucket or 'yt-c-c.appspot.com' }}",
+    messagingSenderId: "{{ firebase_config.messagingSenderId or '49805545148' }}",
+    appId: "{{ firebase_config.appId or '' }}"
+  };
+
+  let auth = null;
+  let isFirebaseReady = false;
+
+  try {
+    if (firebaseConfig.apiKey && firebaseConfig.projectId) {
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      auth = firebase.auth();
+      isFirebaseReady = true;
+    }
+  } catch (err) {
+    console.warn("Firebase Admin Login Init:", err);
+  }
+
+  function showAlert(msg, type = 'danger') {
+    const box = document.getElementById('authAlert');
+    const text = document.getElementById('authAlertText');
+    const icon = document.getElementById('authAlertIcon');
+    text.textContent = msg;
+    box.className = `alert-box ${type}`;
+    icon.textContent = type === 'success' ? '✓' : '⚠️';
+    box.style.display = 'flex';
+  }
+
+  function hideAlert() {
+    document.getElementById('authAlert').style.display = 'none';
+  }
+
+  function togglePasswordVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (input.type === 'password') {
+      input.type = 'text';
+      btn.textContent = '🙈';
+    } else {
+      input.type = 'password';
+      btn.textContent = '👁️';
+    }
+  }
+
+  async function handleAdminLogin(e) {
+    e.preventDefault();
+    hideAlert();
+
+    const email = document.getElementById('adminEmail').value.trim();
+    const password = document.getElementById('adminPassword').value;
+    const btn = document.getElementById('adminSubmitBtn');
+
+    btn.disabled = true;
+    btn.innerHTML = '<span>جارٍ التحقق السحابي كـ Super Admin...</span>';
+
+    try {
+      let uid = null;
+      let idToken = null;
+
+      if (isFirebaseReady && auth) {
+        const cred = await auth.signInWithEmailAndPassword(email, password);
+        uid = cred.user.uid;
+        idToken = await cred.user.getIdToken();
+      }
+
+      const res = await fetch('/api/auth/super-admin-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email,
+          password: password,
+          uid: uid || '',
+          idToken: idToken || ''
+        })
+      });
+
+      const data = await res.json();
+      if (data.ok) {
+        window.location.href = data.redirect || '/super-admin';
+      } else {
+        showAlert(data.error || 'فشل التحقق من صلاحيات السوبر أدمن', 'danger');
+        btn.disabled = false;
+        btn.innerHTML = '<span>👑 دخول لوحة السوبر أدمن المركزية</span><span>←</span>';
+      }
+    } catch (err) {
+      console.error("Super Admin Login Error:", err);
+      btn.disabled = false;
+      btn.innerHTML = '<span>👑 دخول لوحة السوبر أدمن المركزية</span><span>←</span>';
+      showAlert(translateFirebaseError(err.code || err.message), 'danger');
+    }
+  }
+
+  function translateFirebaseError(code) {
+    if (!code) return "حدث خطأ أثناء المصادقة. يرجى التحقق من اتصال الإنترنت.";
+    if (code.includes('user-not-found')) return "البريد الإلكتروني غير مسجل في Firebase.";
+    if (code.includes('wrong-password') || code.includes('invalid-credential')) return "كلمة المرور غير صحيحة لحساب مدير النظام.";
+    if (code.includes('too-many-requests')) return "تم حظر المحاولات مؤقتاً لكثرة الطلبات. يرجى الانتظار قليلاً.";
+    return "خطأ في التوثيق: " + code;
+  }
+</script>
+
+</body>
+</html>

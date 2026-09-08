@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ exam.title }} - ورقة الإجابة الرقمية</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/student.css') }}">
+  <style>
+    body {
+      background-color: #f1f5f9;
+    }
+  </style>
+</head>
+<body>
+  <div class="student-layout">
+    <!-- STICKY HEADER: ALWAYS RTL & ARABIC -->
+    <header class="student-exam-header" id="examHeader">
+      <div class="header-top-row">
+        <div>
+          <h1 style="font-size: 18px; font-weight: 800; color: var(--text);">{{ exam.title }}</h1>
+          <div class="header-meta" style="margin-top: 4px;">
+            <span>المدرسة: <strong>{{ s.school_name }}</strong></span>
+            <span>المبحث: <strong>{{ exam.subject_name or exam.subject }}</strong></span>
+            <span>الطالب: <strong>{{ student.full_name }}</strong></span>
+            <span>الصف: <strong>{{ student.class_name }} ({{ student.section }})</strong></span>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <!-- Autosave Status -->
+          <div id="autosaveIndicator" class="autosave-indicator autosave-saved">
+            تم الحفظ ✓
+          </div>
+
+          <!-- Countdown Timer -->
+          <div class="timer-box" id="timerBox">
+            ⏱️ <span id="timerDisplay">--:--</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- EXAM FORM -->
+    <form id="studentExamForm" action="{{ url_for('student_submit_exam', attempt_id=attempt.id) }}" method="POST" data-attempt-id="{{ attempt.id }}">
+      <!-- Official Jordanian Exam Header -->
+      {% include "components/official_header.html" %}
+
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        {% for q in snapshots %}
+          <div class="question-card {{ 'ltr-content' if q.direction == 'ltr' or q.language == 'en' else 'rtl-content' }}" id="q_card_{{ q.id }}">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span class="q-number-badge">سؤال {{ loop.index }} من {{ snapshots|length }}</span>
+              <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">{{ q.mark }} علامة</span>
+            </div>
+
+            <div class="q-text">
+              {{ q.question_text }}
+            </div>
+
+            {% set current_ans = saved_answers.get(q.id, '') %}
+
+            <div class="q-options-group">
+              <!-- Option A -->
+              <label class="opt-label {{ 'selected' if current_ans in ('أ', 'A', 'a') else '' }}">
+                <input type="radio" name="q_{{ q.id }}" value="{{ 'A' if q.language == 'en' else 'أ' }}" class="opt-input" data-question-id="{{ q.id }}" {{ 'checked' if current_ans in ('أ', 'A', 'a') else '' }}>
+                <span class="opt-marker">{{ 'A' if q.language == 'en' else 'أ' }})</span>
+                <span>{{ q.option_a }}</span>
+              </label>
+
+              <!-- Option B -->
+              <label class="opt-label {{ 'selected' if current_ans in ('ب', 'B', 'b') else '' }}">
+                <input type="radio" name="q_{{ q.id }}" value="{{ 'B' if q.language == 'en' else 'ب' }}" class="opt-input" data-question-id="{{ q.id }}" {{ 'checked' if current_ans in ('ب', 'B', 'b') else '' }}>
+                <span class="opt-marker">{{ 'B' if q.language == 'en' else 'ب' }})</span>
+                <span>{{ q.option_b }}</span>
+              </label>
+
+              <!-- Option C -->
+              <label class="opt-label {{ 'selected' if current_ans in ('ج', 'C', 'c') else '' }}">
+                <input type="radio" name="q_{{ q.id }}" value="{{ 'C' if q.language == 'en' else 'ج' }}" class="opt-input" data-question-id="{{ q.id }}" {{ 'checked' if current_ans in ('ج', 'C', 'c') else '' }}>
+                <span class="opt-marker">{{ 'C' if q.language == 'en' else 'ج' }})</span>
+                <span>{{ q.option_c }}</span>
+              </label>
+
+              <!-- Option D -->
+              <label class="opt-label {{ 'selected' if current_ans in ('د', 'D', 'd') else '' }}">
+                <input type="radio" name="q_{{ q.id }}" value="{{ 'D' if q.language == 'en' else 'د' }}" class="opt-input" data-question-id="{{ q.id }}" {{ 'checked' if current_ans in ('د', 'D', 'd') else '' }}>
+                <span class="opt-marker">{{ 'D' if q.language == 'en' else 'د' }})</span>
+                <span>{{ q.option_d }}</span>
+              </label>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+
+      <!-- Sticky Submission Bar -->
+      <div class="exam-submit-bar">
+        <div class="answered-counter">
+          الأسئلة المجاب عنها: <strong id="answeredCountBadge">0 / {{ snapshots|length }}</strong>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg" data-confirm="تأكيد نهائي: هل أنت متأكد من تسليم ورقة الامتحان؟ لن تتمكن من تعديل إجاباتك بعد التسليم." data-confirm-title="تسليم ورقة الامتحان" data-confirm-btn="نعم، إنهاء وتسليم" data-confirm-danger="false">
+          ✓ إنهاء وتسليم ورقة الامتحان
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script>
+    // Timer Countdown Logic
+    const endTime = {{ end_timestamp }};
+    const timerDisplay = document.getElementById('timerDisplay');
+    const timerBox = document.getElementById('timerBox');
+
+    function updateTimer() {
+      const now = Math.floor(Date.now() / 1000);
+      const remaining = endTime - now;
+
+      if (remaining <= 0) {
+        timerDisplay.textContent = "00:00";
+        showAlertModal("انتهى وقت الامتحان! سيتم تسليم إجاباتك تلقائياً الآن.", "انتهاء وقت الامتحان", "⏰", function() { document.getElementById("studentExamForm").submit(); }); return;
+        document.getElementById('studentExamForm').submit();
+        return;
+      }
+
+      const mins = Math.floor(remaining / 60);
+      const secs = remaining % 60;
+      timerDisplay.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+      if (remaining <= 300) { // Under 5 minutes
+        timerBox.classList.add('timer-warning');
+      }
+    }
+
+    setInterval(updateTimer, 1000);
+    updateTimer();
+  </script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

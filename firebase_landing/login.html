@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تسجيل الدخول - Examora AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/main.css">
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+</head>
+<body style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #f1f5f9;">
+
+  <div class="fast-entry-box" style="width: 100%; max-width: 460px; margin: 20px;">
+    <div class="entry-header">
+      <div style="font-size: 2.5rem; margin-bottom: 8px;">🔐</div>
+      <h3>تسجيل دخول المعلمين والإدارة</h3>
+      <p>منصة Examora AI للاختبارات الذكية</p>
+    </div>
+
+    <div id="loginAlert" style="display: none; padding: 10px 14px; background: #fee2e2; color: #b91c1c; border-radius: 8px; font-size: 0.9rem; margin-bottom: 14px; font-weight: 700;"></div>
+
+    <form onsubmit="handleCloudLogin(event)">
+      <div class="form-group">
+        <label for="userEmail">البريد الإلكتروني:</label>
+        <input type="email" id="userEmail" class="form-control" placeholder="teacher@school.jo" required autofocus>
+      </div>
+
+      <div class="form-group">
+        <label for="userPassword">كلمة المرور:</label>
+        <input type="password" id="userPassword" class="form-control" placeholder="••••••••" required>
+      </div>
+
+      <button type="submit" class="btn-submit" id="btnLoginSubmit">دخول المنصة 🚀</button>
+    </form>
+
+    <div style="margin-top: 20px; text-align: center; font-size: 0.9rem; color: var(--text-muted);">
+      ليس لديك حساب؟ <a href="index.html#register" style="color: var(--primary); font-weight: 700; text-decoration: none;">طلب تسجيل ترخيص جديد</a>
+    </div>
+  </div>
+
+  <script>
+    async function handleCloudLogin(e) {
+      e.preventDefault();
+      const alertBox = document.getElementById('loginAlert');
+      alertBox.style.display = 'none';
+
+      const email = document.getElementById('userEmail').value.trim().toLowerCase();
+      const password = document.getElementById('userPassword').value;
+      const btn = document.getElementById('btnLoginSubmit');
+
+      btn.disabled = true;
+      btn.textContent = 'جارٍ التحقق من الهوية السحابية...';
+
+      try {
+        const userCred = await auth.signInWithEmailAndPassword(email, password);
+        const idToken = await userCred.user.getIdToken();
+
+        // Send verified ID Token to backend
+        const backendUrl = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
+          ? '' : 'http://localhost:8765';
+
+        const resp = await fetch(`${backendUrl}/api/auth/firebase-session`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken: idToken })
+        });
+
+        const data = await resp.json();
+        if (!resp.ok || !data.ok) {
+          alertBox.textContent = data.error || 'تعذر المصادقة مع الخادم المحلي.';
+          alertBox.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'دخول المنصة 🚀';
+          return;
+        }
+
+        window.location.href = data.redirect || '/';
+
+      } catch (err) {
+        console.error(err);
+        alertBox.textContent = 'بيانات الدخول غير صحيحة أو الحساب غير مسجل.';
+        alertBox.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'دخول المنصة 🚀';
+      }
+    }
+  </script>
+</body>
+</html>

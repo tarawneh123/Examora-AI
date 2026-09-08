@@ -1,0 +1,28 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "admin_uid": "Yu1eiUS3yCaHYt49bqYLcMlWevQ2",
+    "admins": {
+      "Yu1eiUS3yCaHYt49bqYLcMlWevQ2": true
+    },
+    "users": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || auth.uid == 'Yu1eiUS3yCaHYt49bqYLcMlWevQ2')",
+        ".write": "auth != null && auth.uid == 'Yu1eiUS3yCaHYt49bqYLcMlWevQ2'"
+      }
+    },
+    "devices": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || auth.uid == 'Yu1eiUS3yCaHYt49bqYLcMlWevQ2')",
+        ".write": "auth != null && (auth.uid == $uid || auth.uid == 'Yu1eiUS3yCaHYt49bqYLcMlWevQ2')"
+      }
+    },
+    "subscriptions": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || auth.uid == 'Yu1eiUS3yCaHYt49bqYLcMlWevQ2')",
+        ".write": "auth != null && auth.uid == 'Yu1eiUS3yCaHYt49bqYLcMlWevQ2'"
+      }
+    }
+  }
+}

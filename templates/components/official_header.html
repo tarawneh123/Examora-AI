@@ -1,0 +1,70 @@
+<!-- Official Exam Header: Jordan Ministry of Education & School Standard (Strictly Optimized for A4 Portrait & Screen) -->
+<header class="official-exam-header-box official-jordanian-exam-header semantic-exam-header" style="border: 2px solid #000; padding: 8px 10px; margin-bottom: 12px; direction: rtl !important; text-align: right !important; background: #ffffff; color: #000000; font-family: 'Cairo', 'Traditional Arabic', sans-serif; box-sizing: border-box; width: 100%;">
+  <table style="width: 100%; border-collapse: collapse; table-layout: fixed; margin: 0; padding: 0;">
+    <tbody>
+      <tr>
+        <!-- Right Column: Ministry Coat of Arms & Directorate (~28% width) -->
+        <td style="width: 28%; vertical-align: top; text-align: center; padding: 2px 4px; line-height: 1.35; font-size: 10pt; font-weight: 700; white-space: nowrap; overflow: hidden;">
+          {% if ministry_logo_url %}
+            <img src="{{ ministry_logo_url }}" class="ministry-emblem" alt="شعار المملكة والوزارة" style="max-height: 60px; max-width: 65px; object-fit: contain; margin-bottom: 3px; display: block; margin-left: auto; margin-right: auto;">
+          {% endif %}
+          <div style="font-size: 10.5pt; font-weight: 800; white-space: nowrap;">وزارة التربية والتعليم</div>
+          <div style="font-size: 9.5pt; white-space: nowrap;">مديرية التربية والتعليم / {{ s.directorate_name or 'لواء المزار الجنوبي' }}</div>
+          <div style="font-size: 10pt; margin-top: 3px; white-space: nowrap;">
+            الصف : <strong>{{ exam.class_name or s.grade or 'الحادي عشر' }}</strong>
+          </div>
+          <div style="font-size: 9.5pt; margin-top: 2px; white-space: nowrap;">
+            اسم الطالب : <strong>{{ student.full_name if student else '...................................' }}</strong>
+          </div>
+        </td>
+
+        <!-- Center Column: Kingdom, Ministry, School, Exam Title, Semester (~44% width) -->
+        <td style="width: 44%; vertical-align: top; text-align: center; padding: 2px 4px; line-height: 1.35; white-space: nowrap; overflow: hidden;">
+          <div style="font-size: 13pt; font-weight: 900; margin: 0 0 1px; white-space: nowrap;">المملكة الأردنية الهاشمية</div>
+          <div style="font-size: 11.5pt; font-weight: 800; margin: 0 0 2px; white-space: nowrap;">وزارة التربية والتعليم</div>
+          <div style="font-size: 11pt; font-weight: 800; margin: 0 0 3px; color: #1e3a8a; white-space: nowrap;">
+            مدرسة {{ s.school_name or 'مدارس ذرى المجد' }}
+          </div>
+          <div style="font-size: 11.5pt; font-weight: 900; margin-top: 3px; padding: 1px 6px; border-bottom: 1.5px solid #000; display: inline-block; white-space: nowrap;">
+            {{ exam.exam_type or 'الامتحان النهائي' }} لمبحث {{ exam.subject_name or exam.subject }}
+          </div>
+          <div style="font-size: 9.5pt; font-weight: 700; margin-top: 4px; white-space: nowrap;">
+            لـ {{ s.semester_name or 'الفصل الدراسي الأول' }} {{ s.academic_year or '2025- 2026م' }}
+          </div>
+        </td>
+
+        <!-- Left Column: School Logo, Date, Total Marks, Duration (~28% width) -->
+        <td style="width: 28%; vertical-align: top; text-align: center; padding: 2px 4px; line-height: 1.35; font-size: 10pt; font-weight: 700; white-space: nowrap; overflow: hidden;">
+          {% if school_logo_url %}
+            <img src="{{ school_logo_url }}" class="school-logo" alt="شعار المدرسة" style="max-height: 60px; max-width: 65px; object-fit: contain; margin-bottom: 3px; display: block; margin-left: auto; margin-right: auto;">
+          {% endif %}
+          <div style="font-size: 9.5pt; margin-top: 2px; white-space: nowrap;">
+            اليوم و التاريخ: <strong>{{ exam.exam_date or now_date }}</strong>
+          </div>
+          <div style="font-size: 9.5pt; margin-top: 2px; white-space: nowrap;">
+            العلامة الكلية للامتحان : ( <strong>{{ exam.total_marks or (exam.question_count * 1.0) }}</strong> )
+          </div>
+          <div style="font-size: 9.5pt; margin-top: 2px; white-space: nowrap;">
+            مدة الامتحان : ( <strong>{{ exam.duration }} دقيقة</strong> )
+          </div>
+          {% if exam.exam_code %}
+            <div style="font-size: 9pt; color: #334155; margin-top: 2px; white-space: nowrap;">
+              رمز الامتحان: <code style="font-weight: 900; color: #000; background: #e2e8f0; padding: 1px 4px; border-radius: 4px;">{{ exam.exam_code }}</code>
+            </div>
+          {% endif %}
+        </td>
+      </tr>
+
+      <!-- Full-Width Bottom Instruction / Note Banner -->
+      <tr>
+        <td colspan="3" style="border-top: 1.5px solid #000; border-bottom: 3.5px double #000; padding-top: 6px; padding-bottom: 6px; text-align: center; font-size: 11pt; font-weight: 800; line-height: 1.4; background: #ffffff;">
+          {% if s.exam_default_note %}
+            {{ s.exam_default_note.replace('{count}', exam.question_count|string) }}
+          {% else %}
+            ملحوظة :- أجب وفقك الله عن جميع الفقرات الآتية ؛ علما بأن عددها ( {{ exam.question_count }} ) والاجابة على الماسح الضوئي
+          {% endif %}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</header>

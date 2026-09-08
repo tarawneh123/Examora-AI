@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }} - {{ s.platform_name or 'منصة الاختبارات التعليمية' }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <style>
+    :root {
+      --primary: {{ s.primary_color or '#2563eb' }};
+      --secondary: {{ s.secondary_color or '#7c3aed' }};
+      --font-main: '{{ s.font_family or "Cairo" }}', Tajawal, Arial, sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <!-- Mobile Top Bar -->
+  <div class="mobile-topbar no-print">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <button class="hamburger-btn" id="hamburgerBtn" aria-label="القائمة">☰</button>
+      <span style="font-weight: 700; font-size: 15px;">{{ s.platform_name }}</span>
+    </div>
+    <div>
+      <a href="{{ url_for('student_home') }}" class="btn btn-secondary btn-sm" target="_blank">بوابة الطالب</a>
+    </div>
+  </div>
+
+  <div class="app-container">
+    <aside class="sidebar no-print" id="appSidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          {% if logo_url %}
+            <img src="{{ logo_url }}" alt="شعار المدرسة">
+          {% else %}
+            <span style="font-size: 20px; font-weight: 800; color: var(--primary);">اختبار</span>
+          {% endif %}
+        </div>
+        <div class="sidebar-title">
+          <h2>{{ s.school_name or 'اسم المدرسة' }}</h2>
+          <p>{{ s.teacher_name or 'المعلمة' }}</p>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav" id="sidebarAccordion">
+        <!-- Student Portal Quick Access & Copy Box -->
+        <div style="margin: 0 0 14px; background: linear-gradient(135deg, #eff6ff, #f0fdf4); border: 1.5px solid #bfdbfe; border-radius: 12px; padding: 12px; text-align: center; box-shadow: 0 2px 6px rgba(37,99,235,0.06);">
+          <div style="font-size: 13px; font-weight: 800; color: #1e40af; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <span>🎓</span>
+            <span>بوابة تقديم الطلاب</span>
+          </div>
+          <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+            <a href="{{ url_for('student_login') }}" target="_blank" class="btn btn-primary btn-sm" style="flex: 1; font-size: 11px; padding: 6px 4px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 4px;" title="فتح صفحة دخول الطلاب في نافذة جديدة">
+              <span>دخول الطالب</span>
+              <span>↗</span>
+            </a>
+            <button type="button" onclick="copyStudentPortalUrl()" class="btn btn-secondary btn-sm" style="flex: 1; font-size: 11px; padding: 6px 4px; font-weight: 800; background: #334155; color: #fff; display: flex; align-items: center; justify-content: center; gap: 4px;" title="نسخ رابط صفحة الطلاب لإرساله للطلاب">
+              <span>📋 نسخ الرابط</span>
+            </button>
+          </div>
+          <div style="font-size: 10px; color: #64748b; font-family: monospace;" id="studentPortalUrlText">
+            http://127.0.0.1:8765/student
+          </div>
+        </div>
+
+        <!-- 0. Dashboard -->
+        <a href="{{ url_for('dashboard') }}" class="btn-windows {{ 'active' if active == 'dashboard' else '' }}" style="text-decoration: none; margin-bottom: 8px; justify-content: flex-start; gap: 8px; {{ 'background: #e0f2fe; border-color: #38bdf8; color: #0369a1 !important;' if active == 'dashboard' else '' }}">
+          <span class="nav-icon" style="font-size: 16px;">⌂</span>
+          <span style="font-weight: 800;">لوحة القيادة المركزية</span>
+        </a>
+
+        <!-- 1. Step 1: Students Management -->
+        <div class="nav-accordion-group {{ 'open' if active in ('students', 'student_add') else '' }}">
+          <button type="button" class="btn-windows nav-accordion-header">
+            <span style="display: flex; align-items: center; gap: 8px;">
+              <span>👥</span>
+              <span>1. إدارة وسجل الطلاب</span>
+            </span>
+            <span class="accordion-arrow">▾</span>
+          </button>
+          <div class="nav-accordion-body">
+            <a href="{{ url_for('students_list') }}" class="nav-link {{ 'active' if active == 'students' else '' }}">
+              <span class="nav-icon">🎓</span> سجل الطلاب وتوزيع المواد
+            </a>
+            <a href="{{ url_for('add_student_view') }}" class="nav-link {{ 'active' if active == 'student_add' else '' }}">
+              <span class="nav-icon">➕</span> إضافة طالب جديد
+            </a>
+            <a href="{{ url_for('import_students_view') }}" class="nav-link">
+              <span class="nav-icon">📥</span> استيراد الطلاب من ملف
+            </a>
+          </div>
+        </div>
+
+        <!-- 2. Step 2: Questions & OSR Engine -->
+        <div class="nav-accordion-group {{ 'open' if active in ('questions', 'review', 'import', 'packages', 'curriculum_gen') else '' }}">
+          <button type="button" class="btn-windows nav-accordion-header">
+            <span style="display: flex; align-items: center; gap: 8px;">
+              <span>📚</span>
+              <span>2. إعداد وبنك الأسئلة</span>
+            </span>
+            <span class="accordion-arrow">▾</span>
+          </button>
+          <div class="nav-accordion-body">
+            <a href="{{ url_for('import_center') }}" class="nav-link {{ 'active' if active == 'import' else '' }}">
+              <span class="nav-icon">⚡</span> استخراج الأسئلة من الصور (OSR) <span class="badge-ai-sparkle">AI</span>
+            </a>
+            <a href="{{ url_for('curriculum_generator_view') }}" class="nav-link {{ 'active' if active == 'curriculum_gen' else '' }}">
+              <span class="nav-icon">💡</span> توليد الأسئلة من نصوص المنهاج <span class="badge-ai-sparkle">AI</span>
+            </a>
+            <a href="{{ url_for('review_questions') }}" class="nav-link {{ 'active' if active == 'review' else '' }}">
+              <span class="nav-icon">🔍</span> تدقيق واعتماد الأسئلة
+            </a>
+            <a href="{{ url_for('question_bank') }}" class="nav-link {{ 'active' if active == 'questions' else '' }}">
+              <span class="nav-icon">📖</span> بنك الأسئلة المعتمدة
+            </a>
+            <a href="{{ url_for('packages_list') }}" class="nav-link {{ 'active' if active == 'packages' else '' }}">
+              <span class="nav-icon">📦</span> الوحدات والدروس الدراسية
+            </a>
+          </div>
+        </div>
+
+        <!-- 3. Step 3: Exams & Publishing -->
+        <div class="nav-accordion-group {{ 'open' if active in ('exams', 'exam_creator') else '' }}">
+          <button type="button" class="btn-windows nav-accordion-header">
+            <span style="display: flex; align-items: center; gap: 8px;">
+              <span>📝</span>
+              <span>3. إدارة الامتحانات ونشرها</span>
+            </span>
+            <span class="accordion-arrow">▾</span>
+          </button>
+          <div class="nav-accordion-body">
+            <a href="{{ url_for('exams_list') }}" class="nav-link {{ 'active' if active == 'exams' else '' }}">
+              <span class="nav-icon">📋</span> قائمة الامتحانات الدراسية
+            </a>
+            <a href="{{ url_for('exam_creator') }}" class="nav-link {{ 'active' if active == 'exam_creator' else '' }}">
+              <span class="nav-icon">➕</span> إنشاء امتحان جديد وتوليد الرمز
+            </a>
+          </div>
+        </div>
+
+        <!-- 4. Step 4: Results & Gradebooks -->
+        <div class="nav-accordion-group {{ 'open' if active in ('results', 'consolidated_report') else '' }}">
+          <button type="button" class="btn-windows nav-accordion-header">
+            <span style="display: flex; align-items: center; gap: 8px;">
+              <span>📊</span>
+              <span>4. النتائج وكشوفات العلامات</span>
+            </span>
+            <span class="accordion-arrow">▾</span>
+          </button>
+          <div class="nav-accordion-body">
+            <a href="{{ url_for('results_dashboard') }}" class="nav-link {{ 'active' if active == 'results' else '' }}">
+              <span class="nav-icon">📈</span> كشوفات نتائج الامتحانات
+            </a>
+            <a href="{{ url_for('consolidated_report') }}" class="nav-link {{ 'active' if active == 'consolidated_report' else '' }}">
+              <span class="nav-icon">📑</span> كشف العلامات التجميعي لمبحث
+            </a>
+          </div>
+        </div>
+
+        <!-- 5. Step 5: Subjects & Media -->
+        <div class="nav-accordion-group {{ 'open' if active in ('subjects', 'media') else '' }}">
+          <button type="button" class="btn-windows nav-accordion-header">
+            <span style="display: flex; align-items: center; gap: 8px;">
+              <span>📖</span>
+              <span>5. المواد والمناهج الدراسية</span>
+            </span>
+            <span class="accordion-arrow">▾</span>
+          </button>
+          <div class="nav-accordion-body">
+            <a href="{{ url_for('subjects_list') }}" class="nav-link {{ 'active' if active == 'subjects' else '' }}">
+              <span class="nav-icon">📚</span> المواد الدراسية المعتمدة
+            </a>
+            <a href="{{ url_for('media_gallery') }}" class="nav-link {{ 'active' if active == 'media' else '' }}">
+              <span class="nav-icon">🖼️</span> مكتبة الصور والوسائط
+            </a>
+          </div>
+        </div>
+
+        <!-- 6. Step 6: Teachers Forum -->
+        <a href="{{ url_for('forum_home') }}" class="btn-windows {{ 'active' if active == 'forum' else '' }}" style="text-decoration: none; margin-bottom: 8px; justify-content: flex-start; gap: 8px; {{ 'background: #eff6ff; border-color: #93c5fd; color: #1d4ed8 !important;' if active == 'forum' else '' }}">
+          <span class="nav-icon" style="font-size: 16px;">👥</span>
+          <span style="font-weight: 800;">6. منتدى الأساتذة</span>
+        </a>
+
+        <!-- 7. Step 7: Complaints & Suggestions -->
+        <div class="nav-accordion-group {{ 'open' if active in ('complaints', 'admin_complaints') else '' }}">
+          <button type="button" class="btn-windows nav-accordion-header">
+            <span style="display: flex; align-items: center; gap: 8px;">
+              <span>📬</span>
+              <span>7. المقترحات والشكاوى</span>
+            </span>
+            <span class="accordion-arrow">▾</span>
+          </button>
+          <div class="nav-accordion-body">
+            <a href="{{ url_for('complaints_home') }}" class="nav-link {{ 'active' if active == 'complaints' else '' }}">
+              <span class="nav-icon">💡</span> تقديم مقترح أو شكوى
+            </a>
+            {% if session.get('is_super_admin') %}
+            <a href="{{ url_for('admin_complaints_view') }}" class="nav-link {{ 'active' if active == 'admin_complaints' else '' }}">
+              <span class="nav-icon">🛡️</span> إدارة طلبات الأساتذة
+            </a>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- 8. Step 8: Settings, Identity & System -->
+        <div class="nav-accordion-group {{ 'open' if active in ('settings', 'feedback_settings', 'audit', 'backup') else '' }}">
+          <button type="button" class="btn-windows nav-accordion-header">
+            <span style="display: flex; align-items: center; gap: 8px;">
+              <span>⚙️</span>
+              <span>8. إعدادات النظام والهوية</span>
+            </span>
+            <span class="accordion-arrow">▾</span>
+          </button>
+          <div class="nav-accordion-body">
+            <a href="{{ url_for('settings_view') }}" class="nav-link {{ 'active' if active == 'settings' else '' }}">
+              <span class="nav-icon">🏛️</span> الهوية والترويسة المدرسية
+            </a>
+            <a href="{{ url_for('settings_feedback_view') }}" class="nav-link {{ 'active' if active == 'feedback_settings' else '' }}">
+              <span class="nav-icon">🌟</span> رسائل التقدير والتشجيع للطلاب
+            </a>
+            {% if session.get('is_super_admin') %}
+            <a href="{{ url_for('audit_log_view') }}" class="nav-link {{ 'active' if active == 'audit' else '' }}">
+              <span class="nav-icon">📝</span> سجل التدقيق الإداري
+            </a>
+            {% endif %}
+            <a href="{{ url_for('backup_view') }}" class="nav-link {{ 'active' if active == 'backup' else '' }}">
+              <span class="nav-icon">💾</span> النسخ الاحتياطي
+            </a>
+            {% if session.get('is_super_admin') %}
+            <a href="{{ url_for('super_admin') }}" class="nav-link" style="color: #d97706; font-weight: 800; background: rgba(245, 158, 11, 0.12); border-radius: 8px; margin-top: 4px;">
+              <span class="nav-icon">👑</span> لوحة السوبر أدمن المركزية
+            </a>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Logout -->
+        <a href="{{ url_for('logout') }}" class="btn-windows" style="color: #dc2626 !important; text-decoration: none; margin-top: 14px; border-color: #fecaca; background: #fff5f5;">
+          <span style="display: flex; align-items: center; gap: 8px;">
+            <span>🚪</span>
+            <span>تسجيل الخروج</span>
+          </span>
+          <span>←</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div>{{ s.footer_text or 'منصة الاختبارات التعليمية' }}</div>
+        {% if not session.get('is_super_admin') and session.get('days_remaining') is not none %}
+          <div style="margin-top: 6px; font-size: 11px; color: var(--text-muted); background: var(--panel-alt); padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border);">
+            ⏳ صلاحية الترخيص: <strong style="color: var(--primary);">{{ session.get('days_remaining') }} يوماً متبقية</strong>
+          </div>
+        {% endif %}
+        <div style="margin-top: 6px;">
+          <a href="{{ url_for('student_home') }}" class="btn btn-secondary btn-sm" style="width: 100%;" target="_blank">
+            ● فتح بوابة الطالب
+          </a>
+        </div>
+      </div>
+    </aside>
+    <main class="main-wrapper">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="no-print">
+            {% for category, message in messages %}
+              <div class="alert-banner alert-{{ 'danger' if category in ('error', 'danger') else 'success' }}">
+                <span>{{ message }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <div class="page-header no-print">
+        <div class="page-title">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 2px;">
+            <h1>{{ title }}</h1>
+            <span class="ai-header-badge">✨ AI-Powered Engine</span>
+          </div>
+          {% if subtitle %}<p>{{ subtitle }}</p>{% endif %}
+        </div>
+        <div class="header-actions">
+          {% block actions %}{% endblock %}
+        </div>
+      </div>
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block scripts %}{% endblock %}
+<script>
+function copyStudentPortalUrl() {
+  const url = window.location.origin + '/student';
+  navigator.clipboard.writeText(url).then(() => {
+    alert('✓ تم نسخ رابط بوابة الطلاب بنجاح:\n' + url + '\n\nيمكنك الآن لصقه وإرساله للطلاب عبر الواتساب.');
+  }).catch(() => {
+    prompt('انسخ الرابط التالي:', url);
+  });
+}
+</script>
+</body>
+</html>

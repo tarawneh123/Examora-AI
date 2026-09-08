@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block actions %}
+  <button class="btn btn-primary" data-modal-open="addSubjectModal">+ إضافة مادة دراسية جديدة</button>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">قائمة المواد الدراسية الخاصة بالمعلمة</div>
+    <span class="badge badge-info">{{ subjects|length }} مادة</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>اسم المادة الدراسية</th>
+          <th>رمز النظام</th>
+          <th>اللغة والاتجاه</th>
+          <th>عدد الوحدات</th>
+          <th>عدد الأسئلة</th>
+          <th style="width: 120px;">الإجراءات</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sub in subjects %}
+          <tr>
+            <td><strong style="font-size: 15px;">{{ sub.name }}</strong></td>
+            <td><code>{{ sub.code }}</code></td>
+            <td>
+              <span class="badge badge-neutral">
+                {{ 'العربية (RTL)' if sub.language == 'ar' else 'الإنجليزية (LTR)' }}
+              </span>
+            </td>
+            <td><span class="badge badge-info">{{ sub.packages_count }} وحدة</span></td>
+            <td>{{ sub.questions_count }} سؤال</td>
+            <td>
+              <form action="{{ url_for('delete_subject', id=sub.id) }}" method="POST" style="display:inline;" data-confirm="هل أنتِ متأكدة من حذف المادة الدراسية ({{ sub.name }})؟" data-confirm-title="تأكيد حذف المادة" data-confirm-btn="نعم، حذف المادة">
+                <button type="submit" class="btn btn-danger btn-sm">حذف</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal: Add Subject -->
+<div class="modal-overlay" id="addSubjectModal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">إضافة مادة دراسية جديدة</div>
+      <button class="close-btn" data-modal-close>&times;</button>
+    </div>
+    <form action="{{ url_for('add_subject') }}" method="POST">
+      <div class="form-group">
+        <label>اسم المادة الدراسية (مثال: جغرافيا، تاريخ، فيزياء، كيمياء، علوم، لغة إنجليزية):</label>
+        <input type="text" name="name" class="form-control" placeholder="اكتبي اسم المادة هنا..." required autofocus>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>لغة تدريس المادة:</label>
+          <select name="language" class="form-control" onchange="document.getElementById('subDir').value = (this.value === 'en' ? 'ltr' : 'rtl')">
+            <option value="ar" selected>اللغة العربية (نصوص RTL)</option>
+            <option value="en">اللغة الإنجليزية (نصوص LTR)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>اتجاه الأسئلة:</label>
+          <select name="direction" id="subDir" class="form-control">
+            <option value="rtl" selected>من اليمين لليسار (RTL)</option>
+            <option value="ltr">من اليسار لليمين (LTR)</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button type="button" class="btn btn-secondary" data-modal-close>إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ وإضافة المادة</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

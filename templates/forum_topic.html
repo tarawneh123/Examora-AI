@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block actions %}
+  <a href="{{ url_for('forum_home') }}" class="btn btn-secondary">
+    <span>←</span> العودة لقائمة المواضيع
+  </a>
+{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 20px; max-width: 900px; margin: 0 auto;">
+
+  <!-- Main Topic Card -->
+  <div class="card" style="padding: 24px 28px; border-radius: 12px; border: 1px solid var(--border); background: #fff;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+      <div>
+        <span class="badge" style="background: #eff6ff; color: var(--primary); font-weight: 800; font-size: 12px; padding: 4px 12px; border-radius: 20px;">
+          {{ topic.category }}
+        </span>
+        <span style="font-size: 13px; color: var(--text-muted); margin-right: 8px;">
+          الكاتب: <strong>{{ topic.author_name }}</strong> • {{ topic.created_at }}
+        </span>
+      </div>
+
+      <!-- Likes and Moderation -->
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <form method="POST" action="{{ url_for('forum_toggle_like', id=topic.id) }}" style="display: inline;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button type="submit" class="btn btn-sm btn-outline" style="color: #e11d48; border-color: #fecdd3; display: flex; align-items: center; gap: 6px;">
+            <span>❤️</span>
+            <span>{{ topic.likes_count or 0 }} إعجاب</span>
+          </button>
+        </form>
+
+        {% if session.get('is_super_admin') or session.get('user_email') == topic.author_email %}
+          <form method="POST" action="{{ url_for('forum_delete_topic', id=topic.id) }}" onsubmit="return confirm('هل أنت متأكد من حذف هذا الموضوع؟');" style="display: inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn btn-sm btn-danger">حذف</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <h2 style="font-size: 22px; font-weight: 900; margin-bottom: 16px; color: var(--dark);">
+      {{ topic.title }}
+    </h2>
+
+    <div style="font-size: 15px; line-height: 1.8; color: var(--text); white-space: pre-wrap; margin-bottom: 16px;">
+      {{ topic.content }}
+    </div>
+  </div>
+
+  <!-- Replies Section -->
+  <div style="margin-top: 10px;">
+    <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+      <span>💬</span>
+      <span>الردود والمناقشات ({{ replies|length }})</span>
+    </h3>
+
+    {% if replies %}
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        {% for r in replies %}
+          <div class="card" style="padding: 16px 20px; border-radius: 10px; border: 1px solid var(--border); background: #ffffff;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-weight: 800; font-size: 13px; color: var(--primary);">
+                👤 {{ r.author_name }}
+              </span>
+              <span style="font-size: 11px; color: var(--text-muted);">
+                {{ r.created_at }}
+              </span>
+            </div>
+            <div style="font-size: 14px; line-height: 1.6; color: var(--text); white-space: pre-wrap;">
+              {{ r.content }}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div style="text-align: center; padding: 24px; background: #fff; border-radius: 10px; border: 1px dashed var(--border); color: var(--text-muted);">
+        لا توجد ردود بعد. شارك برأيك الأول أدناه!
+      </div>
+    {% endif %}
+
+    <!-- Add Reply Box -->
+    <div class="card" style="margin-top: 20px; padding: 20px; border-radius: 12px; background: #fff; border: 1px solid var(--border);">
+      <h4 style="font-size: 15px; font-weight: 800; margin-bottom: 10px;">إضافة رد أو تعقيب:</h4>
+      <form method="POST" action="{{ url_for('forum_add_reply', id=topic.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <textarea name="content" class="form-control" rows="3" placeholder="اكتب ردك أو نصيحتك لزملائك المعلمين..." required style="margin-bottom: 12px;"></textarea>
+        <button type="submit" class="btn btn-primary btn-sm" style="padding: 8px 20px;">إرسال الرد 💬</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

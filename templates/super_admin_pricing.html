@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إعدادات رسوم واشتراكات البرنامج وبيانات الدفع - لوحة السوبر أدمن</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      background-color: #0b0f19;
+      color: #f1f5f9;
+      font-family: 'Cairo', sans-serif;
+      margin: 0;
+      padding: 24px;
+      min-height: 100vh;
+    }
+    .super-container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .super-card {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .form-control-dark {
+      width: 100%;
+      padding: 11px 14px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 13.5px;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+    .form-control-dark:focus {
+      outline: none;
+      border-color: #f59e0b;
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+    }
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .form-grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="super-container">
+    <!-- Super Admin Navigation Bar -->
+    {% set active_admin_tab = 'pricing' %}
+    {% include "super_admin_nav.html" %}
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div style="background: {{ 'rgba(16, 185, 129, 0.15)' if category == 'success' else 'rgba(239, 68, 68, 0.15)' }}; border: 1px solid {{ '#10b981' if category == 'success' else '#ef4444' }}; color: {{ '#34d399' if category == 'success' else '#fca5a5' }}; padding: 12px 18px; border-radius: 10px; font-size: 13.5px; margin-bottom: 20px;">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- Screen 3: Software Subscription Pricing & Payment Details -->
+    <div class="super-card">
+      <div style="border-bottom: 1px solid #1f2937; padding-bottom: 14px; margin-bottom: 20px;">
+        <h2 style="font-size: 18px; font-weight: 900; margin: 0; color: #f59e0b; display: flex; align-items: center; gap: 8px;">
+          <span>💳</span>
+          <span>إعدادات رسوم واشتراكات البرنامج وبيانات الدفع البنكي</span>
+        </h2>
+        <p style="font-size: 13px; color: #94a3b8; margin: 4px 0 0;">
+          البيانات التي تظهر تلقائياً للمستخدم عند انتهاء اشتراكه لتحويل الرسوم والتجديد
+        </p>
+      </div>
+
+      <form action="{{ url_for('super_admin_update_payment_settings') }}" method="POST">
+        <div class="form-grid-3" style="margin-bottom: 16px;">
+          <div class="form-group">
+            <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #cbd5e1;">رسوم الاشتراك السنوي:</label>
+            <input type="number" step="0.5" name="subscription_fee_amount" class="form-control-dark" value="{{ s.subscription_fee_amount or '50' }}" required>
+          </div>
+
+          <div class="form-group">
+            <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #cbd5e1;">العملة:</label>
+            <input type="text" name="subscription_fee_currency" class="form-control-dark" value="{{ s.subscription_fee_currency or 'دينار أردني (JOD)' }}" required>
+          </div>
+
+          <div class="form-group">
+            <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #cbd5e1;">معرّف كليك (CliQ Alias / Phone):</label>
+            <input type="text" name="payment_cliq_alias" class="form-control-dark" value="{{ s.payment_cliq_alias or '0798236349' }}">
+          </div>
+        </div>
+
+        <div class="form-grid-2" style="margin-bottom: 16px;">
+          <div class="form-group">
+            <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #cbd5e1;">اسم البنك الرسمي:</label>
+            <input type="text" name="payment_bank_name" class="form-control-dark" value="{{ s.payment_bank_name or 'البنك العربي / بنك الإسكان' }}">
+          </div>
+
+          <div class="form-group">
+            <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #cbd5e1;">رقم الآيبان (IBAN):</label>
+            <input type="text" name="payment_iban" class="form-control-dark" value="{{ s.payment_iban or 'JO00AAAA0000000000000000000000' }}" style="font-family: monospace;">
+          </div>
+        </div>
+
+        <div class="form-grid-2" style="margin-bottom: 24px;">
+          <div class="form-group">
+            <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #cbd5e1;">المحافظ الإلكترونية (زين كاش / أورنج موني / أمنية):</label>
+            <input type="text" name="payment_wallet_number" class="form-control-dark" value="{{ s.payment_wallet_number or '0798236349 / 0791480861' }}">
+          </div>
+
+          <div class="form-group">
+            <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #cbd5e1;">هاتف الدعم الفني وتأكيد التحويل:</label>
+            <input type="text" name="support_contact_phone" class="form-control-dark" value="{{ s.support_contact_phone or '0798236349 - 0791480861' }}">
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end;">
+          <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; font-weight: 800; border: none; padding: 11px 24px; border-radius: 8px;">
+            ✓ حفظ إعدادات الرسوم والدفع
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Software Package & EXE Direct Download URL -->
+    <div class="super-card">
+      <div style="border-bottom: 1px solid #1f2937; padding-bottom: 14px; margin-bottom: 20px;">
+        <h2 style="font-size: 18px; font-weight: 900; margin: 0; color: #38bdf8; display: flex; align-items: center; gap: 8px;">
+          <span>📦</span>
+          <span>رابط تحميل حزمة برنامج المنصة (Desktop EXE / ZIP Download Link)</span>
+        </h2>
+        <p style="font-size: 13px; color: #94a3b8; margin: 4px 0 0;">
+          الرابط الذي يُسلّم للأستاذ لتحميل ملفات المنصة وتشغيلها محلياً على جهازه
+        </p>
+      </div>
+
+      <form action="{{ url_for('super_admin_update_download_url') }}" method="POST">
+        <div class="form-group" style="margin-bottom: 16px;">
+          <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: #cbd5e1;">رابط التحميل المباشر للبرنامج (Google Drive / Mega Link):</label>
+          <input type="url" name="software_download_url" class="form-control-dark" value="{{ s.software_download_url or '' }}" placeholder="https://drive.google.com/file/d/..." required style="font-family: monospace;">
+          <small style="color: #94a3b8; font-size: 11.5px; display: block; margin-top: 4px;">سيظهر هذا الرابط في صفحة تأكيد التسليم بعد دفع الرسوم والاشتراك.</small>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          {% if s.software_download_url %}
+            <a href="{{ s.software_download_url }}" target="_blank" class="btn btn-secondary btn-sm" style="background: #1e293b; color: #38bdf8; border: 1px solid #334155;">
+              ↗ تجربة فتح رابط التحميل الحالي
+            </a>
+          {% else %}
+            <div></div>
+          {% endif %}
+          <button type="submit" class="btn btn-primary" style="background: #0284c7; font-weight: 800; border: none; padding: 11px 24px; border-radius: 8px;">
+            ✓ حفظ رابط التحميل
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Pending User Registrations Awaiting Payment Activation -->
+    {% if pending_users and pending_users|length > 0 %}
+      <div class="super-card" style="border-color: #f59e0b;">
+        <div style="border-bottom: 1px solid #1f2937; padding-bottom: 14px; margin-bottom: 20px;">
+          <h2 style="font-size: 17px; font-weight: 800; margin: 0; color: #f59e0b; display: flex; align-items: center; gap: 8px;">
+            <span>⏳</span>
+            <span>طلبات التسجيل الجديدة بانتظار تأكيد الدفع والتفعيل ({{ pending_users|length }} طلب)</span>
+          </h2>
+          <p style="font-size: 12.5px; color: #94a3b8; margin: 4px 0 0;">
+            المعلمون الذين سجلوا عبر بوابة البرنامج بانتظار تحويل الرسوم وموافقة السوبر أدمن
+          </p>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table" style="font-size: 13px; text-align: right; color: #f1f5f9;">
+            <thead>
+              <tr style="background: #1e293b; color: #94a3b8;">
+                <th>اسم المعلم</th>
+                <th>المدرسة</th>
+                <th>البريد الإلكتروني</th>
+                <th>تاريخ الطلب</th>
+                <th style="text-align: center;">الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for u in pending_users %}
+                <tr style="border-bottom: 1px solid #1f2937;">
+                  <td style="font-weight: 800;">{{ u.teacher_name }}</td>
+                  <td>{{ u.school_name }}</td>
+                  <td><code>{{ u.email }}</code></td>
+                  <td>{{ u.created_at }}</td>
+                  <td style="text-align: center;">
+                    <div style="display: flex; gap: 8px; justify-content: center;">
+                      <form action="{{ url_for('super_admin_activate_user', id=u.id) }}" method="POST" style="display: inline;">
+                        <button type="submit" class="btn btn-primary btn-sm" style="background: #10b981; border: none; font-weight: 700;">
+                          ✓ تأكيد الدفع وتفعيل الحساب
+                        </button>
+                      </form>
+                      <form action="{{ url_for('super_admin_reject_user', id=u.id) }}" method="POST" style="display: inline;" data-confirm="رفض وحذف طلب هذا المعلم؟">
+                        <button type="submit" class="btn btn-danger btn-sm">رفض ✕</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% endif %}
+
+  </div>
+
+</body>
+</html>

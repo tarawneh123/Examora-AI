@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block actions %}
+  <a href="{{ url_for('students_list') }}" class="btn btn-secondary">← العودة لقائمة الطلاب</a>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 800px; margin: 0 auto;">
+  <div class="card-header">
+    <div>
+      <div class="card-title">تعديل بيانات الطالب: {{ student.full_name }}</div>
+      <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">
+        تحديث معلومات الطالب والمواد الدراسية المسجل بها
+      </div>
+    </div>
+  </div>
+
+  <form action="{{ url_for('edit_student', id=student.id) }}" method="POST">
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label>اسم الطالب الكامل:</label>
+        <input type="text" name="full_name" class="form-control" value="{{ student.full_name }}" required>
+      </div>
+
+      <div class="form-group">
+        <label>الرقم الوطني / المدرسي:</label>
+        <input type="text" name="national_id" class="form-control" value="{{ student.national_id or '' }}" required>
+      </div>
+    </div>
+
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label>الصف الدراسي:</label>
+        <input type="text" name="class_name" class="form-control" value="{{ student.class_name or '' }}" required>
+      </div>
+
+      <div class="form-group">
+        <label>الشعبة:</label>
+        <input type="text" name="section" class="form-control" value="{{ student.section or '' }}" required>
+      </div>
+    </div>
+
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label>اسم المستخدم (Username):</label>
+        <input type="text" name="username" class="form-control" value="{{ student.username }}" required>
+      </div>
+
+      <div class="form-group">
+        <label>كلمة المرور:</label>
+        <input type="text" name="password" class="form-control" value="{{ student.password }}" required>
+      </div>
+    </div>
+
+    <!-- Subject Enrollment Section -->
+    <div style="background: var(--panel-alt, #f8fafc); border: 1px solid var(--border, #e2e8f0); border-radius: 12px; padding: 18px; margin: 18px 0;">
+      <label style="display: block; font-size: 14px; font-weight: 800; color: var(--primary, #2563eb); margin-bottom: 6px;">
+        📚 المواد الدراسية المسجل بها الطالب:
+      </label>
+      <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px;">
+        حدد المواد التي يدرسها الطالب (للتمييز بين طلاب المواد المختلفة كالجغرافيا والدين وغيرها):
+      </p>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
+        {% for sub in subjects %}
+          <label style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #ffffff; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 13.5px; font-weight: 700;">
+            <input type="checkbox" name="subject_ids" value="{{ sub.id }}" {{ 'checked' if sub.id in enrolled_subject_ids else '' }} style="width: 17px; height: 17px;">
+            <span>{{ sub.name }}</span>
+          </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+      <a href="{{ url_for('students_list') }}" class="btn btn-secondary">إلغاء</a>
+      <button type="submit" class="btn btn-primary" style="padding: 11px 24px; font-weight: 800;">
+        ✓ حفظ التعديلات
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

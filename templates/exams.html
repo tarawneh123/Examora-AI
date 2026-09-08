@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block actions %}
+  <a href="{{ url_for('consolidated_report') }}" class="btn btn-secondary" style="font-weight: 700;">
+    📑 كشف العلامات التجميعي لمبحث
+  </a>
+  <a href="{{ url_for('exam_creator') }}" class="btn btn-primary" style="font-weight: 800;">
+    + إنشاء امتحان جديد
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+    <div>
+      <div class="card-title">قائمة الامتحانات الدراسية المعتمدة</div>
+      <div style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">
+        مفهرسة حسب المادة الدراسية مع رموز الدخول المباشر للطلاب
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span class="badge badge-info">{{ exams|length }} امتحان</span>
+      <button type="button" id="btnBulkDeleteExams" class="btn btn-danger btn-sm" style="display: none; font-weight: 700;" onclick="submitBulkExamDelete()">
+        🗑️ حذف الامتحانات المحددة (<span id="selectedExamCount">0</span>)
+      </button>
+    </div>
+  </div>
+
+  <!-- Subject Filter Tabs -->
+  <div style="display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 6px; border-bottom: 1px solid var(--border);">
+    <button type="button" class="btn btn-secondary btn-sm filter-tab active" onclick="filterExamsBySubject('ALL', this)" style="border-radius: 999px; font-weight: 700;">
+      جميع المواد ({{ exams|length }})
+    </button>
+    {% for s in subjects %}
+      <button type="button" class="btn btn-secondary btn-sm filter-tab" onclick="filterExamsBySubject('{{ s.name }}', this)" style="border-radius: 999px;">
+        {{ s.name }}
+      </button>
+    {% endfor %}
+  </div>
+
+  {% if exams %}
+    <form id="bulkExamDeleteForm" action="{{ url_for('exams_bulk_delete') }}" method="POST">
+      <div class="table-responsive">
+        <table class="table" id="examsTable">
+          <thead>
+            <tr>
+              <th style="width: 38px; text-align: center;">
+                <input type="checkbox" id="selectAllExams" onchange="toggleSelectAllExams(this)" style="width: 16px; height: 16px; cursor: pointer;">
+              </th>
+              <th>عنوان الامتحان</th>
+              <th>المادة (المبحث)</th>
+              <th>رمز دخول الطالب (PIN)</th>
+              <th>الوحدة الدراسية</th>
+              <th>الصف / الشعبة</th>
+              <th>المدة</th>
+              <th>عدد الأسئلة</th>
+              <th>الحالة</th>
+              <th style="width: 130px; text-align: center;">الإجراءات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ex in exams %}
+              <tr data-subject="{{ ex.subject_name or ex.subject or '' }}">
+                <td style="text-align: center;">
+                  <input type="checkbox" name="selected_exam_ids" value="{{ ex.id }}" class="exam-select-box" onchange="updateSelectedExamCount()" style="width: 16px; height: 16px; cursor: pointer;">
+                </td>
+                <td>
+                  <strong>{{ ex.title }}</strong>
+                  {% if ex.password %}
+                    <span title="محمي بكلمة سر خاصة" style="font-size: 13px; margin-right: 4px;">🔒</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="badge badge-info" style="font-weight: 700;">{{ ex.subject_name or ex.subject or '—' }}</span>
+                </td>
+                <td>
+                  <code style="font-family: monospace; font-size: 14px; font-weight: 900; color: #1e40af; background: #dbeafe; padding: 3px 8px; border-radius: 6px; letter-spacing: 1px;">
+                    {{ ex.exam_code or ex.id }}
+                  </code>
+                </td>
+                <td><span class="badge badge-neutral">{{ ex.package_name or ex.unit or 'كامل المنهاج' }}</span></td>
+                <td>{{ ex.class_name or '—' }} ({{ ex.section or '—' }})</td>
+                <td>{{ ex.duration }} دقيقة</td>
+                <td><span class="badge badge-neutral">{{ ex.question_count }} سؤال</span></td>
+                <td>
+                  {% if ex.status == 'PUBLISHED' or ex.active %}
+                    <span class="badge badge-success">منشور نشط ✓</span>
+                  {% elif ex.status == 'CLOSED' %}
+                    <span class="badge badge-danger">مغلق</span>
+                  {% else %}
+                    <span class="badge badge-warning">مسودة</span>
+                  {% endif %}
+                </td>
+                <td style="text-align: center;">
+                  <a href="{{ url_for('exam_manage', id=ex.id) }}" class="btn btn-primary btn-sm" style="padding: 6px 14px; font-weight: 700;">
+                    ⚙️ إدارة الامتحان
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </form>
+  {% else %}
+    <div style="text-align: center; padding: 48px 20px;">
+      <div style="font-size: 36px; margin-bottom: 12px;">📋</div>
+      <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 6px;">لا توجد امتحانات حتى الآن</h3>
+      <p style="color: var(--text-muted); font-size: 13.5px; margin-bottom: 18px;">أنشئي امتحانك الأول بسهولة باختيار الأسئلة من بنك الأسئلة المعتمدة.</p>
+      <a href="{{ url_for('exam_creator') }}" class="btn btn-primary">+ إنشاء امتحان جديد</a>
+    </div>
+  {% endif %}
+</div>
+
+<script>
+  function filterExamsBySubject(subjectName, btn) {
+    document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active', 'btn-primary'));
+    btn.classList.add('active', 'btn-primary');
+    btn.classList.remove('btn-secondary');
+
+    const rows = document.querySelectorAll('#examsTable tbody tr');
+    rows.forEach(r => {
+      const rowSubj = r.getAttribute('data-subject') || '';
+      if (subjectName === 'ALL' || rowSubj.trim() === subjectName.trim()) {
+        r.style.display = '';
+      } else {
+        r.style.display = 'none';
+      }
+    });
+  }
+
+  function toggleSelectAllExams(master) {
+    const boxes = document.querySelectorAll('.exam-select-box');
+    boxes.forEach(b => {
+      if (b.closest('tr').style.display !== 'none') {
+        b.checked = master.checked;
+      }
+    });
+    updateSelectedExamCount();
+  }
+
+  function updateSelectedExamCount() {
+    const checked = document.querySelectorAll('.exam-select-box:checked');
+    const btn = document.getElementById('btnBulkDeleteExams');
+    const counter = document.getElementById('selectedExamCount');
+    if (counter) counter.textContent = checked.length;
+    if (btn) {
+      btn.style.display = checked.length > 0 ? 'inline-flex' : 'none';
+    }
+  }
+
+  function submitBulkExamDelete() {
+    const checked = document.querySelectorAll('.exam-select-box:checked');
+    if (!checked.length) return;
+
+    if (confirm(`تأكيد حذف (${checked.length}) امتحان محدد؟\n\nملاحظة الأمان: في حال كان أي من هذه الامتحانات قد تقدم له الطلاب سابقاً، سيتم أرشفته بأمان والمحافظة التامة على علامات الطلاب وإجاباتهم وكشوفات نتائجهم.`)) {
+      document.getElementById('bulkExamDeleteForm').submit();
+    }
+  }
+</script>
+{% endblock %}

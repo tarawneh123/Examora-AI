@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block actions %}
+  {% if exam.status == 'PUBLISHED' or exam.active %}
+    <form action="{{ url_for('toggle_exam_publish', id=exam.id) }}" method="POST" style="display:inline;">
+      <button type="submit" class="btn btn-warning">إيقاف النشر</button>
+    </form>
+  {% else %}
+    <form action="{{ url_for('exams_publish_online', id=exam.id) }}" method="POST" style="display:inline;">
+      <button type="submit" class="btn btn-success">نشر الامتحان الآن</button>
+    </form>
+  {% endif %}
+  <a href="{{ url_for('print_exam', id=exam.id) }}" class="btn btn-secondary" target="_blank">🖨️ طباعة ورقة الامتحان</a>
+  <a href="{{ url_for('export_exam_pdf', id=exam.id) }}" class="btn btn-secondary">📄 تحميل PDF</a>
+{% endblock %}
+
+{% block content %}
+{% if published_online and published_online.publish_token and (exam.status == 'PUBLISHED' or exam.active or published_online.status == 'ACTIVE') %}
+<!-- Banner: Online Student Exam Link -->
+<div class="card" style="border: 2px solid #2563eb; background: #eff6ff; margin-bottom: 20px; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.12);">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+    <div>
+      <div style="font-size: 13.5px; font-weight: 800; color: #1d4ed8; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+        <span>🌐</span>
+        <span>رابط امتحان الطلاب (Firebase Online):</span>
+      </div>
+      <div style="direction: ltr; text-align: left; font-family: monospace; font-size: 14.5px; font-weight: 800; color: #0f172a; word-break: break-all; background: #ffffff; padding: 8px 14px; border-radius: 8px; border: 1px solid #bfdbfe;" id="studentExamLink">https://yt-c-c.web.app/#/e/{{ published_online.publish_token }}</div>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <button type="button" class="btn btn-primary" onclick="copyExamLink()" id="btnCopyLink" style="font-weight: 800; padding: 9px 18px;">
+        📋 نسخ رابط الامتحان
+      </button>
+      <a href="https://yt-c-c.web.app/#/e/{{ published_online.publish_token }}" target="_blank" class="btn btn-secondary" style="font-weight: 700; padding: 9px 16px;">
+        ↗ فتح الرابط
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+function copyExamLink() {
+  const linkText = document.getElementById('studentExamLink').innerText.trim();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(linkText).then(() => {
+      showCopySuccess();
+    }).catch(() => {
+      fallbackCopy(linkText);
+    });
+  } else {
+    fallbackCopy(linkText);
+  }
+}
+
+function showCopySuccess() {
+  const btn = document.getElementById('btnCopyLink');
+  btn.innerText = '✅ تم النسخ!';
+  btn.style.background = '#16a34a';
+  setTimeout(() => {
+    btn.innerText = '📋 نسخ رابط الامتحان';
+    btn.style.background = '';
+  }, 2500);
+}
+
+function fallbackCopy(text) {
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  document.body.appendChild(textArea);
+  textArea.select();
+  try {
+    document.execCommand('copy');
+    showCopySuccess();
+  } catch (err) {
+    prompt('انسخ الرابط يدوياً:', text);
+  }
+  document.body.removeChild(textArea);
+}
+</script>
+{% endif %}
+
+<!-- Section 1: Exam Information -->
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title">{{ exam.title }}</div>
+      <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+        المادة: <strong>{{ exam.subject_name or exam.subject }}</strong> | 
+        الحزمة: <strong>{{ exam.package_name or 'كامل المنهاج' }}</strong> | 
+        الصف: <strong>{{ exam.class_name }}</strong> ({{ exam.section }})
+      </p>
+    </div>
+    <div>
+      {% if exam.status == 'PUBLISHED' or exam.active %}
+        <span class="badge badge-success" style="font-size: 14px; padding: 6px 14px;">منشور ونشط</span>
+      {% elif exam.status == 'CLOSED' %}
+        <span class="badge badge-danger" style="font-size: 14px; padding: 6px 14px;">مغلق</span>
+      {% else %}
+        <span class="badge badge-warning" style="font-size: 14px; padding: 6px 14px;">مسودة غير منشورة</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="form-grid-3" style="margin-top: 10px;">
+    <div style="background: var(--panel-alt); padding: 14px; border-radius: 8px;">
+      <div style="font-size: 12px; color: var(--text-muted);">عدد الأسئلة</div>
+      <div style="font-size: 22px; font-weight: 800; color: var(--text);">{{ exam.question_count }} سؤال</div>
+    </div>
+
+    <div style="background: var(--panel-alt); padding: 14px; border-radius: 8px;">
+      <div style="font-size: 12px; color: var(--text-muted);">مدة الامتحان</div>
+      <div style="font-size: 22px; font-weight: 800; color: var(--text);">{{ exam.duration }} دقيقة</div>
+    </div>
+
+    <div style="background: var(--panel-alt); padding: 14px; border-radius: 8px;">
+      <div style="font-size: 12px; color: var(--text-muted);">حماية الامتحان</div>
+      <div style="font-size: 15px; font-weight: 700; color: var(--text); margin-top: 6px;">
+        {{ 'محمي بكلمة مرور' if exam.password else 'بدون كلمة مرور' }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Section 2: Questions Attached to Exam -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">أسئلة الامتحان ({{ attached_questions|length }} سؤال)</div>
+    <span class="badge badge-neutral">ترتيب ثابت للورقي / عشوائي للرقمي إن تم تفعيله</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th style="width: 50px;">رقم</th>
+          <th>نص السؤال</th>
+          <th>الخيارات</th>
+          <th>الإجابة</th>
+          <th>العلامة</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for q in attached_questions %}
+          <tr>
+            <td><strong>{{ loop.index }}</strong></td>
+            <td>
+              <div style="font-weight: 600; {{ 'direction: ltr; text-align: left;' if q.direction == 'ltr' or q.language == 'en' else '' }}">
+                {{ q.question }}
+              </div>
+            </td>
+            <td>
+              <div style="font-size: 12px; color: var(--text-muted); {{ 'direction: ltr; text-align: left;' if q.direction == 'ltr' or q.language == 'en' else '' }}">
+                A) {{ q.option_a }} | B) {{ q.option_b }} | C) {{ q.option_c }} | D) {{ q.option_d }}
+              </div>
+            </td>
+            <td><strong style="color: var(--success);">{{ q.correct }}</strong></td>
+            <td>{{ q.mark }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Section 3: Attendees / Students who Attempted -->
+<div class="card">
+  <div class="card-header">
+    <div class="card-title">الطلاب المتقدمون للامتحان (سجل المحاولات)</div>
+    <span class="badge badge-info">{{ attendees|length }} طالب</span>
+  </div>
+
+  {% if attendees %}
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>اسم الطالب</th>
+            <th>الرقم / اسم المستخدم</th>
+            <th>الصف / الشعبة</th>
+            <th>عدد المحاولات</th>
+            <th>آخر حالة</th>
+            <th>العلامة</th>
+            <th>النسبة</th>
+            <th>تاريخ التسليم</th>
+            <th>الإجراء</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for st in attendees %}
+            <tr>
+              <td><strong>{{ st.student_name }}</strong></td>
+              <td><code>{{ st.username }}</code></td>
+              <td>{{ st.class_name }} ({{ st.section }})</td>
+              <td>{{ st.attempts_count }}</td>
+              <td>
+                {% if st.latest_status == 'SUBMITTED' %}
+                  <span class="badge badge-success">تم التسليم</span>
+                {% elif st.latest_status == 'ACTIVE' %}
+                  <span class="badge badge-warning">قيد التقديم</span>
+                {% else %}
+                  <span class="badge badge-neutral">لم يبدأ</span>
+                {% endif %}
+              </td>
+              <td><strong>{{ st.latest_score }} / {{ st.total }}</strong></td>
+              <td>
+                <span style="font-weight: 700; color: {{ 'var(--success)' if st.percentage >= 50 else 'var(--danger)' }};">
+                  {{ '%.1f'|format(st.percentage) }}%
+                </span>
+              </td>
+              <td>{{ st.submitted_at or st.finished_at or '—' }}</td>
+              <td>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+                  {% if st.latest_attempt_id %}
+                    <a href="{{ url_for('attempt_result_detail', id=st.latest_attempt_id) }}" class="btn btn-secondary btn-sm">عرض النتيجة</a>
+                    
+                    <form action="{{ url_for('grant_student_attempt', exam_id=exam.id, student_id=st.student_id) }}" method="POST" style="display:inline;">
+                      <button type="submit" class="btn btn-primary btn-sm" title="منح الطالب محاولة إضافية جديدة">+ محاولة</button>
+                    </form>
+
+                    <form action="{{ url_for('delete_student_attempt', exam_id=exam.id, attempt_id=st.latest_attempt_id) }}" method="POST" style="display:inline;">
+                      <button type="submit" class="btn btn-danger btn-sm" data-confirm="تأكيد حذف محاولة الطالب ({{ st.student_name }})؟ سيتمكن الطالب من إعادة تقديم الامتحان." data-confirm-title="تأكيد حذف محاولة الطالب" data-confirm-btn="نعم، حذف المحاولة">حذف المحاولة</button>
+                    </form>
+                  {% else %}
+                    —
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div style="text-align: center; padding: 36px 20px; color: var(--text-muted);">
+      <p>لم يتقدم أي طالب لهذا الامتحان حتى الآن.</p>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Danger Zone -->
+<div class="card" style="border-color: rgba(220, 38, 38, 0.3); background: rgba(254, 242, 242, 0.4);">
+  <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <h3 style="font-size: 15px; font-weight: 700; color: var(--danger);">منطقة العمليات الحساسة</h3>
+      <p style="font-size: 12.5px; color: var(--text-muted); margin-top: 2px;">
+        حذف الامتحان سيؤدي لمسح محاولات الطلاب وسجلات هذا الامتحان مع الإبقاء التام على أسئلة بنك الأسئلة دون مساس.
+      </p>
+    </div>
+    <form action="{{ url_for('delete_exam', id=exam.id) }}" method="POST" data-confirm="تأكيد نهائي: هل تريد حذف هذا الامتحان وكافة سجلاته بالكامل؟ لا يمكن التراجع عن هذا الإجراء." data-confirm-title="تأكيد حذف الامتحان" data-confirm-btn="نعم، احذف الامتحان">
+      <button type="submit" class="btn btn-danger">حذف الامتحان</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

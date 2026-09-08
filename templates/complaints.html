@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block actions %}
+  <button type="button" class="btn btn-primary" onclick="openNewTicketModal()">
+    <span>➕</span> إرسال مقترح / شكوى جديدة
+  </button>
+{% endblock %}
+
+{% block content %}
+<div style="display: flex; flex-direction: column; gap: 24px;">
+
+  <!-- Info Banner -->
+  <div style="background: linear-gradient(135deg, #eff6ff, #f0fdf4); border: 1.5px solid #bfdbfe; border-radius: 12px; padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px;">
+    <div>
+      <h3 style="font-size: 16px; font-weight: 800; color: #1e40af; margin-bottom: 4px;">📬 منصة المقترحات والشكاوى والدعم الفني</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin: 0;">
+        صوتك مسموع ومحل تقديرنا الدائم. نراجع كافة الملاحظات والمقترحات بعناية لترقيتها في التحديثات المستمرة.
+      </p>
+    </div>
+    <button type="button" class="btn btn-primary btn-sm" onclick="openNewTicketModal()">
+      + تقديم طلب جديد
+    </button>
+  </div>
+
+  <!-- Tickets List -->
+  <div class="card" style="padding: 20px; border-radius: 12px; background: #fff; border: 1px solid var(--border);">
+    <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 16px;">سجل طلباتي ومقترحاتي ({{ tickets|length }})</h3>
+
+    {% if tickets %}
+      <div style="overflow-x: auto;">
+        <table class="table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <thead>
+            <tr style="background: #f8fafc; text-align: right; border-bottom: 2px solid var(--border);">
+              <th style="padding: 10px 14px;">رقم الطلب</th>
+              <th style="padding: 10px 14px;">النوع</th>
+              <th style="padding: 10px 14px;">العنوان</th>
+              <th style="padding: 10px 14px;">الأولوية</th>
+              <th style="padding: 10px 14px;">الحالة</th>
+              <th style="padding: 10px 14px;">تاريخ التقديم</th>
+              <th style="padding: 10px 14px;">رد الإدارة</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in tickets %}
+              <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 12px 14px; font-weight: 800; color: var(--primary);">
+                  {{ t.ticket_number }}
+                </td>
+                <td style="padding: 12px 14px;">
+                  <span class="badge" style="background: #f1f5f9; color: var(--text); font-weight: 700; padding: 3px 8px; border-radius: 6px;">
+                    {{ t.type }}
+                  </span>
+                </td>
+                <td style="padding: 12px 14px; font-weight: 700;">
+                  {{ t.title }}
+                </td>
+                <td style="padding: 12px 14px;">
+                  {% if t.priority == 'URGENT' %}
+                    <span style="color: #dc2626; font-weight: 800;">🔴 عاجل جداً</span>
+                  {% elif t.priority == 'HIGH' %}
+                    <span style="color: #ea580c; font-weight: 800;">🟠 مرتفع</span>
+                  {% else %}
+                    <span style="color: var(--text-muted);">عادي</span>
+                  {% endif %}
+                </td>
+                <td style="padding: 12px 14px;">
+                  {% if t.status == 'NEW' %}
+                    <span class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 800; padding: 4px 8px; border-radius: 12px;">جديد</span>
+                  {% elif t.status == 'IN_PROGRESS' or t.status == 'IN_REVIEW' %}
+                    <span class="badge" style="background: #fef3c7; color: #b45309; font-weight: 800; padding: 4px 8px; border-radius: 12px;">قيد المراجعة</span>
+                  {% elif t.status == 'RESOLVED' %}
+                    <span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 800; padding: 4px 8px; border-radius: 12px;">تم الحل / الاعتماد</span>
+                  {% else %}
+                    <span class="badge" style="background: #f1f5f9; color: var(--text-muted); padding: 4px 8px; border-radius: 12px;">{{ t.status }}</span>
+                  {% endif %}
+                </td>
+                <td style="padding: 12px 14px; color: var(--text-muted); font-size: 12px;">
+                  {{ t.created_at[:10] }}
+                </td>
+                <td style="padding: 12px 14px;">
+                  {% if t.admin_response %}
+                    <div style="background: #eff6ff; border-right: 3px solid var(--primary); padding: 6px 10px; border-radius: 4px; font-size: 12px; color: #1e3a8a;">
+                      {{ t.admin_response }}
+                    </div>
+                  {% else %}
+                    <span style="color: var(--text-muted); font-style: italic;">بانتظار رد الإدارة...</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+        لا توجد أي طلبات أو شكاوى مسجلة باسمك حالياً.
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- New Ticket Modal -->
+<div id="newTicketModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(2px);">
+  <div class="card" style="width: 90%; max-width: 580px; padding: 26px; border-radius: 14px; box-shadow: var(--shadow-lg);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+      <h3 style="font-size: 18px; font-weight: 800;">إرسال مقترح أو شكوى جديدة</h3>
+      <button type="button" onclick="closeNewTicketModal()" style="background: none; border: none; font-size: 20px; cursor: pointer;">✕</button>
+    </div>
+
+    <form method="POST" action="{{ url_for('complaints_submit') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label style="font-weight: 700; font-size: 13px; display: block; margin-bottom: 6px;">نوع الطلب:</label>
+        <select name="type" class="form-control" required>
+          <option value="اقتراح">💡 اقتراح لتطوير المنصة</option>
+          <option value="شكوى">⚠️ شكوى بخصوص خدمة أو أداء</option>
+          <option value="مشكلة تقنية">🛠️ إبلاغ عن مشكلة تقنية / خلل برمجية</option>
+          <option value="طلب تطوير">🚀 طلب ميزة خاصة إضافية</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label style="font-weight: 700; font-size: 13px; display: block; margin-bottom: 6px;">العنوان الرئيسي:</label>
+        <input type="text" name="title" class="form-control" placeholder="اكتب ملخصاً موجزاً للطلب..." required>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label style="font-weight: 700; font-size: 13px; display: block; margin-bottom: 6px;">الأولوية:</label>
+        <select name="priority" class="form-control">
+          <option value="NORMAL">عادي</option>
+          <option value="HIGH">مرتفع</option>
+          <option value="URGENT">عاجل جداً</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 18px;">
+        <label style="font-weight: 700; font-size: 13px; display: block; margin-bottom: 6px;">التفاصيل والملاحظات:</label>
+        <textarea name="description" class="form-control" rows="5" placeholder="اشرح تفاصيل طلبك بدقة لمساعدتنا على معالجته سريعاً..." required></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" onclick="closeNewTicketModal()" class="btn btn-secondary">إلغاء</button>
+        <button type="submit" class="btn btn-primary">إرسال الطلب الآن 📨</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function openNewTicketModal() {
+    document.getElementById('newTicketModal').style.display = 'flex';
+  }
+  function closeNewTicketModal() {
+    document.getElementById('newTicketModal').style.display = 'none';
+  }
+</script>
+{% endblock %}

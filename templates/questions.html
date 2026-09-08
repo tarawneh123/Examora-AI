@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+
+{% block actions %}
+  <a href="{{ url_for('export_questions_print', subject_id=filter_subject_id, package_id=filter_package_id) }}" class="btn btn-primary" target="_blank" style="font-weight: 800;">
+    📑 تصدير وطباعة بنك الأسئلة (PDF)
+  </a>
+  <a href="{{ url_for('export_questions_csv') }}" class="btn btn-secondary" style="font-weight: 700;">
+    📊 تصدير Excel (CSV)
+  </a>
+  <button class="btn btn-secondary" data-modal-open="addQuestionModal">+ إضافة سؤال يدوي</button>
+  <a href="{{ url_for('import_center') }}" class="btn btn-secondary">⚡ استخراج OSR</a>
+<script>
+  function toggleSelectAllQ(master) {
+    document.querySelectorAll('.q-select-box').forEach(b => b.checked = master.checked);
+    updateSelectedQCount();
+  }
+
+  function updateSelectedQCount() {
+    const checked = document.querySelectorAll('.q-select-box:checked');
+    const btn = document.getElementById('btnBulkDeleteQ');
+    const counter = document.getElementById('selectedQCount');
+    const counterExp = document.getElementById('selectedQCountExport');
+    const btnExp = document.getElementById('btnBulkExportQ');
+    if (counter) counter.textContent = checked.length;
+    if (counterExp) counterExp.textContent = checked.length;
+    if (btn) btn.style.display = checked.length > 0 ? 'inline-flex' : 'none';
+    if (btnExp) btnExp.style.display = checked.length > 0 ? 'inline-flex' : 'none';
+  }
+
+  function printSelectedQuestions() {
+    const checked = Array.from(document.querySelectorAll('.q-select-box:checked')).map(cb => cb.value);
+    if (!checked.length) return;
+    const url = `{{ url_for('export_questions_print') }}?selected_ids=${checked.join(',')}`;
+    window.open(url, '_blank');
+  }
+
+  function submitBulkQDelete() {
+    const checked = document.querySelectorAll('.q-select-box:checked');
+    if (!checked.length) return;
+    if (confirm(`تأكيد حذف (${checked.length}) سؤال محدد نهائياً من بنك الأسئلة؟\n\n(ملاحظة الأمان: سيتم الحفاظ التام على أوراق امتحانات الطلاب السابقة التي استخدمت هذه الأسئلة).`)) {
+      document.getElementById('bulkQuestionsForm').submit();
+    }
+  }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
+    <div>
+      <div class="card-title">بنك الأسئلة المعتمدة</div>
+      <p style="font-size: 12.5px; color: var(--text-muted); margin-top: 2px;">
+        💡 ملاحظة: النقر المزدوج (Double Click) على أي سؤال في الجدول يفتح نافذة تعديله فوراً.
+      </p>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="font-size: 13.5px; color: var(--text-muted);">إجمالي الأسئلة المطابقة: <strong>{{ total_matched }}</strong></span>
+      <button type="button" id="btnBulkExportQ" class="btn btn-primary btn-sm" style="display: none; font-weight: 800; background: #0284c7;" onclick="printSelectedQuestions()">
+        📑 طباعة الأسئلة المحددة (<span id="selectedQCountExport">0</span>)
+      </button>
+      <button type="button" id="btnBulkDeleteQ" class="btn btn-danger btn-sm" style="display: none; font-weight: 700;" onclick="submitBulkQDelete()">
+        🗑️ حذف الأسئلة المحددة (<span id="selectedQCount">0</span>)
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter Bar -->
+  <form method="GET" action="{{ url_for('question_bank') }}" style="background: var(--panel-alt); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 24px;">
+    <div class="form-grid-3">
+      <div class="form-group" style="margin-bottom: 0;">
+        <label>المادة الدراسية:</label>
+        <select name="subject_id" id="subjectFilterSelect" class="form-control" >
+          <option value="">جميع المواد</option>
+          {% for sub in subjects %}
+            <option value="{{ sub.id }}" {{ 'selected' if filter_subject_id == sub.id else '' }}>{{ sub.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 0;">
+        <label>الوحدة الدراسية:</label>
+        <select name="package_id" id="packageFilterSelect" class="form-control" >
+          <option value="">جميع الوحدات</option>
+          {% for pkg in packages %}
+            <option value="{{ pkg.id }}" data-subject-id="{{ pkg.subject_id }}" {{ 'selected' if filter_package_id == pkg.id else '' }}>
+              {{ pkg.name }} ({{ pkg.subject_name }})
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 0;">
+        <label>البحث في نصوص الأسئلة:</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="text" name="q" class="form-control" placeholder="ابحث بكلمة أو جزء من السؤال..." value="{{ search_query }}">
+          <button type="submit" class="btn btn-primary">تصفية وبحث</button>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  {% if questions %}
+    <form id="bulkQuestionsForm" action="{{ url_for('questions_bulk_delete') }}" method="POST">
+      <div class="table-responsive">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width: 38px; text-align: center;">
+                <input type="checkbox" id="selectAllQ" onchange="toggleSelectAllQ(this)" style="width: 16px; height: 16px; cursor: pointer;">
+              </th>
+              <th style="width: 50px;">#</th>
+            <th>نص السؤال</th>
+            <th>المادة</th>
+            <th>الوحدة</th>
+            <th>الإجابة الصحيحة</th>
+            <th>العلامة</th>
+            <th>الحالة</th>
+            <th style="width: 130px;">الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for q in questions %}
+            <tr style="cursor: pointer;" ondblclick="document.getElementById('editQModal_{{ q.id }}').style.display='flex'" title="انقر نقراً مزدوجاً للتعديل السريع">
+              <td style="text-align: center;">
+                <input type="checkbox" name="selected_q_ids" value="{{ q.id }}" class="q-select-box" onchange="updateSelectedQCount()" style="width: 16px; height: 16px; cursor: pointer;">
+              </td>
+              <td><strong style="color: var(--primary);">#{{ loop.index }}</strong></td>
+              <td>
+                <div style="font-weight: 700; max-width: 450px; {{ 'direction: ltr; text-align: left;' if q.direction == 'ltr' or q.language == 'en' else '' }}">
+                  {{ q.question }}
+                </div>
+                <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 4px; {{ 'direction: ltr; text-align: left;' if q.direction == 'ltr' or q.language == 'en' else '' }}">
+                  أ) {{ q.option_a }} | ب) {{ q.option_b }} | ج) {{ q.option_c }} | د) {{ q.option_d }}
+                </div>
+              </td>
+              <td><span class="badge badge-info">{{ q.subject_name or q.subject }}</span></td>
+              <td><span class="badge badge-neutral">{{ q.package_name or q.unit or '—' }}</span></td>
+              <td><strong style="color: var(--success); font-size: 14px;">{{ q.correct }}</strong></td>
+              <td>{{ q.mark }}</td>
+              <td>
+                <span class="badge {{ 'badge-success' if q.status == 'APPROVED' else 'badge-warning' }}">
+                  {{ 'معتمد' if q.status == 'APPROVED' else 'مراجعة' }}
+                </span>
+              </td>
+              <td>
+                <div style="display: flex; gap: 6px;">
+                  <button class="btn btn-secondary btn-sm" data-modal-open="editQModal_{{ q.id }}">تعديل</button>
+                  <form action="{{ url_for('delete_question', id=q.id) }}" method="POST" style="display:inline;" data-confirm="هل أنت متأكد من حذف السؤال #{{ loop.index }} نهائياً من بنك الأسئلة؟" data-confirm-title="تأكيد حذف السؤال" data-confirm-btn="نعم، حذف"><button type="submit" class="btn btn-danger btn-sm">حذف</button></form>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Edit Question Modal -->
+            <div class="modal-overlay" id="editQModal_{{ q.id }}" style="display: none;">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <div class="modal-title">تعديل السؤال #{{ loop.index }} <span style="font-size: 11px; font-weight: normal; color: var(--text-muted);">(معرف #{{ q.id }})</span></div>
+                  <button type="button" class="close-btn" data-modal-close>&times;</button>
+                </div>
+                <form action="{{ url_for('save_question') }}" method="POST">
+                  <input type="hidden" name="id" value="{{ q.id }}">
+                  <input type="hidden" name="redirect_to" value="bank">
+
+                  <div class="form-grid-2">
+                    <div class="form-group">
+                      <label>المادة:</label>
+                      <select name="subject_id" class="form-control" required>
+                        {% for sub in subjects %}
+                          <option value="{{ sub.id }}" {{ 'selected' if sub.id == q.subject_id else '' }}>{{ sub.name }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>حزمة الأسئلة:</label>
+                      <select name="package_id" class="form-control">
+                        <option value="">بدون حزمة</option>
+                        {% for pkg in packages %}
+                          <option value="{{ pkg.id }}" {{ 'selected' if pkg.id == q.package_id else '' }}>{{ pkg.name }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label>نص السؤال:</label>
+                    <textarea name="question" class="form-control" required>{{ q.question }}</textarea>
+                  </div>
+
+                  <div class="form-grid-2">
+                    <div class="form-group">
+                      <label>الخيار أ / A:</label>
+                      <input type="text" name="option_a" class="form-control" value="{{ q.option_a }}" required>
+                    </div>
+                    <div class="form-group">
+                      <label>الخيار ب / B:</label>
+                      <input type="text" name="option_b" class="form-control" value="{{ q.option_b }}" required>
+                    </div>
+                    <div class="form-group">
+                      <label>الخيار ج / C:</label>
+                      <input type="text" name="option_c" class="form-control" value="{{ q.option_c }}" required>
+                    </div>
+                    <div class="form-group">
+                      <label>الخيار د / D:</label>
+                      <input type="text" name="option_d" class="form-control" value="{{ q.option_d }}" required>
+                    </div>
+                  </div>
+
+                  <div class="form-grid-3">
+                    <div class="form-group">
+                      <label>الإجابة الصحيحة:</label>
+                      <select name="correct" class="form-control">
+                        {% for opt in ['أ', 'ب', 'ج', 'د', 'A', 'B', 'C', 'D'] %}
+                          <option value="{{ opt }}" {{ 'selected' if q.correct == opt else '' }}>{{ opt }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>العلامة:</label>
+                      <input type="number" step="0.5" name="mark" class="form-control" value="{{ q.mark }}">
+                    </div>
+                    <div class="form-group">
+                      <label>الحالة:</label>
+                      <select name="status" class="form-control">
+                        <option value="APPROVED" {{ 'selected' if q.status == 'APPROVED' else '' }}>معتمد (APPROVED)</option>
+                        <option value="NEEDS_REVIEW" {{ 'selected' if q.status != 'APPROVED' else '' }}>بحاجة لمراجعة</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" data-modal-close>إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ التعديلات</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    </form>
+  {% else %}
+    <div style="text-align: center; padding: 48px 20px;">
+      <div style="font-size: 36px; margin-bottom: 12px;">📚</div>
+      <h3 style="font-size: 17px; font-weight: 700; margin-bottom: 6px;">لا توجد أسئلة معتمدة لهذه المادة</h3>
+      <p style="color: var(--text-muted); font-size: 13.5px; margin-bottom: 18px;">يمكنك استخراج الأسئلة من أوراق الامتحانات أو إدخال سؤال يدوي جديد.</p>
+      <div style="display: flex; gap: 10px; justify-content: center;">
+        <button class="btn btn-primary" data-modal-open="addQuestionModal">+ إنشاء سؤال يدوي</button>
+        <a href="{{ url_for('import_center') }}" class="btn btn-secondary">⚡ استخراج أسئلة OSR</a>
+      </div>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Modal: Add Manual Question -->
+<div class="modal-overlay" id="addQuestionModal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">إضافة سؤال جديد يدويًا</div>
+      <button type="button" class="close-btn" data-modal-close>&times;</button>
+    </div>
+    <form action="{{ url_for('save_question') }}" method="POST">
+      <input type="hidden" name="status" value="APPROVED">
+      <input type="hidden" name="redirect_to" value="bank">
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>المادة الدراسية:</label>
+          <select name="subject_id" class="form-control" required>
+            {% for sub in subjects %}
+              <option value="{{ sub.id }}">{{ sub.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>حزمة الأسئلة (اختياري):</label>
+          <select name="package_id" class="form-control">
+            <option value="">بدون حزمة</option>
+            {% for pkg in packages %}
+              <option value="{{ pkg.id }}">{{ pkg.name }} ({{ pkg.subject_name }})</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>نص السؤال:</label>
+        <textarea name="question" class="form-control" placeholder="اكتب نص السؤال بدقة..." required></textarea>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>الخيار أ / Option A:</label>
+          <input type="text" name="option_a" class="form-control" placeholder="نص الخيار الأول" required>
+        </div>
+        <div class="form-group">
+          <label>الخيار ب / Option B:</label>
+          <input type="text" name="option_b" class="form-control" placeholder="نص الخيار الثاني" required>
+        </div>
+        <div class="form-group">
+          <label>الخيار ج / Option C:</label>
+          <input type="text" name="option_c" class="form-control" placeholder="نص الخيار الثالث" required>
+        </div>
+        <div class="form-group">
+          <label>الخيار د / Option D:</label>
+          <input type="text" name="option_d" class="form-control" placeholder="نص الخيار الرابع" required>
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="form-group">
+          <label>الإجابة الصحيحة:</label>
+          <select name="correct" class="form-control" required>
+            <option value="أ" selected>أ (الأولى)</option>
+            <option value="ب">ب (الثانية)</option>
+            <option value="ج">ج (الثالثة)</option>
+            <option value="د">د (الرابعة)</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>العلامة المخصصة:</label>
+          <input type="number" step="0.5" name="mark" class="form-control" value="1.0" required>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button type="button" class="btn btn-secondary" data-modal-close>إلغاء</button>
+        <button type="submit" class="btn btn-primary">حفظ واعتماد في البنك</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
