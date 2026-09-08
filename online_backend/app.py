@@ -447,7 +447,7 @@ def student_start():
         'percentage': 0.0,
         'started_at': now_str,
         'server_deadline': server_deadline,
-        'is_synced': 0
+        'is_synced': False
     })
 
     res = jsonify({
