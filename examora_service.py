@@ -546,7 +546,7 @@ class ExamoraService:
         # 1. Dispatch payload to Online Cloud API
         cloud_payload = {
             'idempotency_key': idempotency_key,
-            'exam_code': str(exam.get('exam_code') or '').strip(),
+            'exam_code': str(dict(exam).get('exam_code') or '').strip(),
             'title': exam['title'],
             'subject': exam['subject'],
             'duration': exam['duration'],

@@ -61,7 +61,7 @@ class Response:
             self.headers['Content-Type'] = f"{mimetype}; charset=utf-8"
 
         if isinstance(body, (dict, list)):
-            self.body_bytes = json.dumps(body, ensure_ascii=False).encode('utf-8')
+            self.body_bytes = json.dumps(body, ensure_ascii=False, default=str).encode('utf-8')
             self.headers['Content-Type'] = 'application/json; charset=utf-8'
         elif isinstance(body, str):
             self.body_bytes = body.encode('utf-8')
