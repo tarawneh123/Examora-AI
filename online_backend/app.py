@@ -67,6 +67,7 @@ def teacher_publish():
 
     title = (data.get('title') or '').strip()
     subject = (data.get('subject') or '').strip()
+    exam_code = str(data.get('exam_code') or '').strip()
     duration = int(data.get('duration') or 30)
     total_marks = float(data.get('total_marks') or 0.0)
     questions = data.get('questions') or []
@@ -132,7 +133,7 @@ def teacher_publish():
                     UPDATE online_exams 
                     SET status='ACTIVE', closed_at=NULL, title=?, subject=?, duration=?, total_marks=?, questions_json=?, allowed_students_json=?
                     WHERE id=?
-                """, (title, subject, duration, total_marks, incoming_questions_json, json.dumps(allowed_students, ensure_ascii=False), existing['id']))
+                """, (title, subject, duration, total_marks, incoming_questions_json, json.dumps(allowed_students, ensure_ascii=False), exam_code if exam_code else existing.get('exam_code'), existing['id']))
             else:
                 db.x("UPDATE online_exams SET status='ACTIVE', closed_at=NULL WHERE id=?", (existing['id'],))
                 
@@ -160,6 +161,7 @@ def teacher_publish():
     db.insert('online_exams', {
         'publish_token': publish_token,
         'idempotency_key': idempotency_key if idempotency_key else None,
+        'exam_code': exam_code if exam_code else None,
         'title': title,
         'subject': subject,
         'duration': duration,
@@ -352,11 +354,12 @@ def student_start():
         res.status_code = 400
         return apply_cors_headers(res, req_origin)
 
-    exam = db.q("SELECT * FROM online_exams WHERE publish_token=?", (publish_token,), one=True)
+    exam = db.q("SELECT * FROM online_exams WHERE (publish_token=? OR exam_code=?) AND status='ACTIVE' ORDER BY id DESC LIMIT 1", (publish_token, publish_token), one=True)
     if not exam or exam['status'] != 'ACTIVE':
         res = jsonify({'ok': False, 'error': 'عذراً، هذا الامتحان غير متاح حالياً أو تم إغلاقه.'})
         res.status_code = 404
         return apply_cors_headers(res, req_origin)
+    publish_token = exam['publish_token']
 
     allowed_students = json.loads(exam['allowed_students_json'] or '[]')
     if allowed_students and national_id not in allowed_students:

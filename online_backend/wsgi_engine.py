@@ -128,6 +128,7 @@ class OnlineApp:
         if we:
             we.current_request = req
 
+        # Direct intercept for CORS preflight (OPTIONS)
         if method == 'OPTIONS':
             res = Response('', status=200)
             from security import apply_cors_headers
@@ -148,22 +149,30 @@ class OnlineApp:
                 break
 
         if not matched_func:
-            res = Response(json.dumps({'ok': False, 'error': 'Not Found'}), status=404, mimetype='application/json')
+            from security import apply_cors_headers
+            res = Response(json.dumps({'ok': False, 'error': f'Route {path} [{method}] not found'}), status=404, mimetype='application/json')
+            apply_cors_headers(res, req.headers.get('Origin', ''))
             return res(environ, start_response)
 
         try:
             result = matched_func(**kwargs)
+            from security import apply_cors_headers
             if isinstance(result, Response):
+                apply_cors_headers(result, req.headers.get('Origin', ''))
                 return result(environ, start_response)
             elif isinstance(result, tuple):
                 body, status = result[0], result[1]
                 res = Response(body, status=status)
+                apply_cors_headers(res, req.headers.get('Origin', ''))
                 return res(environ, start_response)
             else:
                 res = Response(result)
+                apply_cors_headers(res, req.headers.get('Origin', ''))
                 return res(environ, start_response)
         except Exception as e:
+            from security import apply_cors_headers
             res = Response(json.dumps({'ok': False, 'error': f'Internal Server Error: {e}'}), status=500, mimetype='application/json')
+            apply_cors_headers(res, req.headers.get('Origin', ''))
             return res(environ, start_response)
 
     def __call__(self, environ, start_response):
@@ -180,7 +189,6 @@ class OnlineApp:
 
     def test_client(self):
         return OnlineTestClient(self)
-
 current_request = None
 class RequestProxy:
     def __getattr__(self, item):

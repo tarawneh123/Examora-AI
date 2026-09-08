@@ -58,14 +58,19 @@ def check_rate_limit(ip_address: str, category: str = 'default') -> bool:
     return False
 
 def apply_cors_headers(response, origin: str = ""):
-    """Applies strict CORS headers restricting production access to Firebase Hosting."""
+    """Applies strict CORS headers allowing Firebase Hosting."""
     origin_clean = (origin or '').strip().rstrip('/')
-    allowed_clean = (ALLOWED_ORIGIN or 'https://yt-c-c.web.app').strip().rstrip('/')
+    allowed_raw = (ALLOWED_ORIGIN or 'https://yt-c-c.web.app').strip()
+    
+    # Strip accidental markdown link syntax e.g. [https://yt-c-c.web.app](https://yt-c-c.web.app)
+    if allowed_raw.startswith('[') and '](' in allowed_raw:
+        allowed_raw = allowed_raw.split('](')[0].replace('[', '').strip()
+    allowed_clean = allowed_raw.rstrip('/')
 
     if origin_clean in (allowed_clean, 'https://yt-c-c.web.app', 'https://yt-c-c.firebaseapp.com') or 'yt-c-c' in origin_clean or 'localhost' in origin_clean or '127.0.0.1' in origin_clean:
-        allow_origin = origin or allowed_clean
+        allow_origin = origin if origin else allowed_clean
     else:
-        allow_origin = allowed_clean
+        allow_origin = allowed_clean if allowed_clean else 'https://yt-c-c.web.app'
 
     response.headers['Access-Control-Allow-Origin'] = allow_origin
     response.headers['Access-Control-Allow-Methods'] = 'GET, POST, DELETE, OPTIONS, HEAD'

@@ -51,6 +51,14 @@ class OnlineDatabase:
                 cols = [r[1] for r in cur.execute("PRAGMA table_info(online_exams);").fetchall()]
                 if 'idempotency_key' not in cols:
                     cur.execute("ALTER TABLE online_exams ADD COLUMN idempotency_key TEXT;")
+                if 'exam_code' not in cols:
+                    cur.execute("ALTER TABLE online_exams ADD COLUMN exam_code TEXT;")
+            else:
+                try:
+                    cur.execute("ALTER TABLE online_exams ADD COLUMN IF NOT EXISTS exam_code VARCHAR(32);")
+                    cur.execute("ALTER TABLE online_exams ADD COLUMN IF NOT EXISTS idempotency_key VARCHAR(128);")
+                except Exception:
+                    pass
             con.commit()
             con.close()
 
