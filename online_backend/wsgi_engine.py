@@ -207,7 +207,7 @@ class OnlineTestClient:
         body_bytes = b''
         content_type = 'text/plain'
         if json_data is not None:
-            body_bytes = json.dumps(json_data).encode('utf-8')
+            body_bytes = json.dumps(json_data, default=str).encode('utf-8')
             content_type = 'application/json'
         elif isinstance(data, dict):
             body_bytes = urllib.parse.urlencode(data).encode('utf-8')

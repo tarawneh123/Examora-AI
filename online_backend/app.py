@@ -133,15 +133,15 @@ def teacher_publish():
                     UPDATE online_exams 
                     SET status='ACTIVE', closed_at=NULL, title=?, subject=?, duration=?, total_marks=?, questions_json=?, allowed_students_json=?
                     WHERE id=?
-                """, (title, subject, duration, total_marks, incoming_questions_json, json.dumps(allowed_students, ensure_ascii=False), exam_code if exam_code else existing.get('exam_code'), existing['id']))
-            else:
-                db.x("UPDATE online_exams SET status='ACTIVE', closed_at=NULL WHERE id=?", (existing['id'],))
-                
+                """, (title, subject, duration, total_marks, incoming_questions_json, json.dumps(allowed_students, ensure_ascii=False), existing['id']))
+
                 db.x("""
                     UPDATE online_answer_keys 
                     SET keys_json=?
                     WHERE publish_token=?
                 """, (incoming_keys_json, token))
+            else:
+                db.x("UPDATE online_exams SET status='ACTIVE', closed_at=NULL WHERE id=?", (existing['id'],))
 
             web_link = f"https://yt-c-c.web.app/#/e/{token}"
             res = jsonify({
@@ -149,7 +149,7 @@ def teacher_publish():
                 'publish_token': token,
                 'web_link': web_link,
                 'title': title,
-                'published_at': existing['created_at'],
+                'published_at': str(existing['created_at']) if existing['created_at'] else now_str,
                 'reused': True
             })
             return apply_cors_headers(res, req_origin)
@@ -236,8 +236,8 @@ def teacher_get_attempts(token):
             'total': float(att['total']),
             'percentage': float(att['percentage']),
             'tier': att['tier'],
-            'started_at': att['started_at'],
-            'finished_at': att['finished_at'],
+            'started_at': str(att['started_at']) if att['started_at'] else '',
+            'finished_at': str(att['finished_at']) if att['finished_at'] else '',
             'is_synced': bool(att['is_synced']),
             'answers': answers_map
         })
@@ -389,7 +389,11 @@ def student_start():
     """, (publish_token, national_id), one=True)
 
     if active_att:
-        deadline = datetime.strptime(active_att['server_deadline'], '%Y-%m-%d %H:%M:%S')
+        deadline = active_att['server_deadline']
+        if isinstance(deadline, str):
+            deadline = datetime.strptime(deadline[:19], '%Y-%m-%d %H:%M:%S')
+        elif hasattr(deadline, 'tzinfo') and deadline.tzinfo is not None:
+            deadline = deadline.replace(tzinfo=None)
         remaining_secs = int((deadline - now).total_seconds())
         if remaining_secs <= 0:
             db.x("UPDATE online_attempts SET status='EXPIRED', finished_at=? WHERE id=?", (now_str, active_att['id']))
@@ -506,7 +510,11 @@ def student_autosave():
 
     # Server deadline check (with strict 15-second network buffer)
     now = datetime.now()
-    deadline = datetime.strptime(attempt['server_deadline'], '%Y-%m-%d %H:%M:%S')
+    deadline = attempt['server_deadline']
+    if isinstance(deadline, str):
+        deadline = datetime.strptime(deadline[:19], '%Y-%m-%d %H:%M:%S')
+    elif hasattr(deadline, 'tzinfo') and deadline.tzinfo is not None:
+        deadline = deadline.replace(tzinfo=None)
     if (deadline - now).total_seconds() < -15:
         now_str = now.strftime('%Y-%m-%d %H:%M:%S')
         db.x("UPDATE online_attempts SET status='EXPIRED', finished_at=? WHERE id=?", (now_str, attempt_id))

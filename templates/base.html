@@ -176,7 +176,7 @@
         </div>
 
         <!-- 6. Step 6: Teachers Forum -->
-        <a href="{{ url_for('forum_home') }}" class="btn-windows {{ 'active' if active == 'forum' else '' }}" style="text-decoration: none; margin-bottom: 8px; justify-content: flex-start; gap: 8px; {{ 'background: #eff6ff; border-color: #93c5fd; color: #1d4ed8 !important;' if active == 'forum' else '' }}">
+        <a href="/forum" class="btn-windows {{ 'active' if active == 'forum' else '' }}" style="text-decoration: none; margin-bottom: 8px; justify-content: flex-start; gap: 8px; {{ 'background: #eff6ff; border-color: #93c5fd; color: #1d4ed8 !important;' if active == 'forum' else '' }}">
           <span class="nav-icon" style="font-size: 16px;">👥</span>
           <span style="font-weight: 800;">6. منتدى الأساتذة</span>
         </a>
@@ -191,11 +191,11 @@
             <span class="accordion-arrow">▾</span>
           </button>
           <div class="nav-accordion-body">
-            <a href="{{ url_for('complaints_home') }}" class="nav-link {{ 'active' if active == 'complaints' else '' }}">
+            <a href="/complaints" class="nav-link {{ 'active' if active == 'complaints' else '' }}">
               <span class="nav-icon">💡</span> تقديم مقترح أو شكوى
             </a>
             {% if session.get('is_super_admin') %}
-            <a href="{{ url_for('admin_complaints_view') }}" class="nav-link {{ 'active' if active == 'admin_complaints' else '' }}">
+            <a href="/admin/complaints" class="nav-link {{ 'active' if active == 'admin_complaints' else '' }}">
               <span class="nav-icon">🛡️</span> إدارة طلبات الأساتذة
             </a>
             {% endif %}

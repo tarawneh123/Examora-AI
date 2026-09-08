@@ -52,6 +52,20 @@ except ImportError:
     HAS_FIREBASE_ADMIN = False
 
 APP_DIR = Path(__file__).resolve().parent
+# Auto-load .env file if present
+_env_path = APP_DIR / '.env'
+if _env_path.exists():
+    try:
+        with open(_env_path, 'r', encoding='utf-8') as _ef:
+            for _line in _ef:
+                _line = _line.strip()
+                if _line and not _line.startswith('#') and '=' in _line:
+                    _k, _v = _line.split('=', 1)
+                    _k, _v = _k.strip(), _v.strip().strip('\'"')
+                    if _k not in os.environ:
+                        os.environ[_k] = _v
+    except Exception:
+        pass
 DATA_DIR = APP_DIR / 'exam_data'
 ASSETS_DIR = DATA_DIR / 'assets'
 IMAGES_DIR = DATA_DIR / 'question_images'
@@ -3120,7 +3134,7 @@ def save_settings():
               'academic_year', 'semester_name', 'grade', 'exam_default_note',
               'tier_excellent_messages', 'tier_very_good_messages', 'tier_good_messages', 'tier_pass_messages',
               'firebase_api_key', 'firebase_auth_domain', 'firebase_project_id', 'firebase_storage_bucket',
-              'firebase_messaging_sender_id', 'firebase_app_id'):
+              'firebase_messaging_sender_id', 'firebase_app_id', 'teacher_online_secret', 'online_api_url'):
         if k in f:
             db.set_setting(k, f.get(k, '').strip())
 
