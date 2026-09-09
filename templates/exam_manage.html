@@ -11,7 +11,7 @@
     </form>
   {% endif %}
   <a href="{{ url_for('print_exam', id=exam.id) }}" class="btn btn-secondary" target="_blank">🖨️ طباعة ورقة الامتحان</a>
-  <a href="{{ url_for('export_exam_pdf', id=exam.id) }}" class="btn btn-secondary">📄 تحميل PDF</a>
+  <a href="{{ url_for('export_exam_pdf', id=exam.id) }}" class="btn btn-secondary">📄 تحميل PDF</a> {% if pub_exam or exam.publish_token %}<form action="{{ url_for('exams_sync_published', token=(pub_exam.publish_token if pub_exam else exam.publish_token)) }}" method="POST" class="d-inline"><button type="submit" class="btn btn-sm btn-outline-primary ms-1"><i class="bi bi-arrow-repeat"></i> مزامنة النتائج يدويًا</button></form>{% endif %} </a>
 {% endblock %}
 
 {% block content %}
