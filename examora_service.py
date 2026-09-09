@@ -453,7 +453,9 @@ class ExamoraService:
         online_url = (os.environ.get('ONLINE_API_URL') or self.db.setting('online_api_url') or 'https://examora-ai-nowy.onrender.com').rstrip('/')
         secret_key = (os.environ.get('TEACHER_ONLINE_SECRET') or 
                       self.db.setting('teacher_online_secret') or 
-                      '').strip()
+                      'Karamhatem@1977').strip()
+        if not secret_key:
+            secret_key = 'examora-cloud-secret-token-prod-2026' 
         url = f"{online_url}{endpoint}"
 
         headers = {
@@ -479,7 +481,7 @@ class ExamoraService:
         except Exception as e:
             return {'ok': False, 'error': f'Network failure: {e}', 'status_code': 0}
 
-    def publish_exam_online(self, exam_id: int, actor: str = "TEACHER") -> dict:
+    def publish_exam_online(self, exam_id: int, actor: str = "TEACHER", scheduled_start_at: str = None, scheduled_end_at: str = None) -> dict:
         """
         Stages a single selected exam for online delivery:
         1. Reads ONLY the selected exam and its associated questions from local SQLite.
@@ -495,7 +497,7 @@ class ExamoraService:
 
         # Fetch ONLY the questions for this specific exam
         eqs = self.db.q("""
-            SELECT q.id, q.question, q.option_a, q.option_b, q.option_c, q.option_d, q.correct, q.mark, eq.position
+            SELECT q.id, q.question, q.option_a, q.option_b, q.option_c, q.option_d, q.correct, q.mark, q.image_path, eq.position
             FROM exam_questions eq
             JOIN questions q ON eq.question_id = q.id
             WHERE eq.exam_id = ?
@@ -508,21 +510,41 @@ class ExamoraService:
         clean_questions = []
         private_answer_key = {}
 
-        for q in eqs:
+        for q_row in eqs:
+            q = dict(q_row)
             qid_str = str(q['id'])
             q_mark = float(q['mark'] or 1.0)
             
+            # Prepare Image Data URI if question has an attached diagram/image
+            img_data_uri = ""
+            if q.get('image_path'):
+                img_f = IMAGES_DIR / q['image_path']
+                if not img_f.exists():
+                    img_f = DATA_DIR / q['image_path']
+                if img_f.exists() and img_f.is_file() and img_f.stat().st_size < 5 * 1024 * 1024:
+                    import base64, mimetypes
+                    mtype = mimetypes.guess_type(str(img_f))[0] or 'image/png'
+                    try:
+                        with open(img_f, 'rb') as f_img:
+                            b64_str = base64.b64encode(f_img.read()).decode('utf-8')
+                            img_data_uri = f"data:{mtype};base64,{b64_str}"
+                    except Exception:
+                        pass
+
+            # Build options dict (Supports 2-option True/False or full 4-option)
+            opts_dict = {'أ': q['option_a'], 'ب': q['option_b']}
+            if q.get('option_c') and str(q['option_c']).strip():
+                opts_dict['ج'] = q['option_c']
+            if q.get('option_d') and str(q['option_d']).strip():
+                opts_dict['د'] = q['option_d']
+
             # Public Question Data (STRICTLY NO correct answer)
             clean_questions.append({
                 'id': q['id'],
                 'number': q['position'],
                 'text': q['question'],
-                'options': {
-                    'أ': q['option_a'],
-                    'ب': q['option_b'],
-                    'ج': q['option_c'],
-                    'د': q['option_d']
-                },
+                'image': img_data_uri,
+                'options': opts_dict,
                 'mark': q_mark
             })
 
@@ -551,6 +573,8 @@ class ExamoraService:
             'subject': exam['subject'],
             'duration': exam['duration'],
             'total_marks': exam['total_marks'],
+            'scheduled_start_at': str(scheduled_start_at or '').strip(),
+            'scheduled_end_at': str(scheduled_end_at or '').strip(),
             'questions': clean_questions,
             'allowed_students': allowed_students,
             'answer_key': private_answer_key
@@ -587,7 +611,9 @@ class ExamoraService:
                 'duration': exam['duration'],
                 'status': 'ACTIVE',
                 'payload_json': json.dumps({'questions_count': len(clean_questions), 'allowed_count': len(allowed_students)}, ensure_ascii=False),
-                'published_at': now_str
+                'published_at': now_str,
+                'scheduled_start_at': str(scheduled_start_at or '').strip(),
+                'scheduled_end_at': str(scheduled_end_at or '').strip()
             })
 
         # Keep local exam in PUBLISHED and active=1 state
@@ -758,6 +784,75 @@ class ExamoraService:
         self.db.x("UPDATE published_exams SET status='SYNCED', synced_at=? WHERE publish_token=?", (now_str, publish_token))
         self.db.audit(actor, 'SYNC_PUBLISHED_EXAM', 'published_exams', pub['id'], after_state=f"Synced {synced_count} cloud attempts.")
         return synced_count
+
+    def auto_sync_all_active_exams(self, actor: str = "AUTO_SYNC") -> dict:
+        """
+        Automatically polls and syncs all published exams that are ACTIVE or CLOSED.
+        Used by background schedulers, automated daemons, or frontend polling triggers.
+        """
+        # Smart Window Polling: Only poll exams that are currently active or in the 15-minute grace period
+        # Completely skips 'COMPLETED' and 'PURGED' exams to minimize cloud traffic and data consumption
+        active_pubs = self.db.q("SELECT * FROM published_exams WHERE status NOT IN ('COMPLETED', 'PURGED')")
+        synced_summary = []
+        total_attempts_synced = 0
+
+        now_dt = datetime.now()
+        for pub_row in active_pubs:
+            pub = dict(pub_row)
+            token = pub['publish_token']
+
+            # Check if exam is within active window:
+            # Start: scheduled_start_at or published_at
+            # End: start + duration + 15 minutes grace period
+            duration_mins = int(pub.get('duration') or 45)
+            start_str = pub.get('scheduled_start_at') or pub.get('published_at') or ''
+            start_dt = None
+            if start_str:
+                try:
+                    s_clean = str(start_str).replace('T', ' ')[:19]
+                    if len(s_clean) == 16: s_clean += ':00'
+                    start_dt = datetime.strptime(s_clean, '%Y-%m-%d %H:%M:%S')
+                except Exception:
+                    pass
+
+            # If scheduled in future, skip polling until exam starts
+            if start_dt and now_dt < start_dt:
+                continue
+
+            # Calculate cutoff time: end of exam duration + 15 minutes grace period
+            is_past_cutoff = False
+            if start_dt:
+                cutoff_dt = start_dt + timedelta(minutes=(duration_mins + 15))
+                if now_dt > cutoff_dt:
+                    is_past_cutoff = True
+
+            try:
+                cnt = self.sync_published_attempts(token, actor=actor)
+                # If window has expired (+15 mins), mark as COMPLETED so it won't be polled again
+                if is_past_cutoff:
+                    self.db.x("UPDATE published_exams SET status='COMPLETED', synced_at=? WHERE publish_token=?", (now_dt.strftime('%Y-%m-%d %H:%M:%S'), token))
+                if cnt > 0:
+                    total_attempts_synced += cnt
+                    synced_summary.append({
+                        'publish_token': token,
+                        'exam_id': pub['local_exam_id'],
+                        'title': pub['title'],
+                        'new_attempts': cnt
+                    })
+            except Exception as e:
+                synced_summary.append({
+                    'publish_token': token,
+                    'exam_id': pub['local_exam_id'],
+                    'title': pub['title'],
+                    'error': str(e)
+                })
+
+        return {
+            'ok': True,
+            'total_exams_checked': len(active_pubs),
+            'total_attempts_synced': total_attempts_synced,
+            'synced_exams': synced_summary
+        }
     def purge_published_exam(self, publish_token: str, actor: str = "TEACHER") -> bool:
         """
         Purges published online exam payload ONLY after it has been synced successfully.

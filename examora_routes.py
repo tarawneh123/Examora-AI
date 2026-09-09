@@ -17,6 +17,9 @@ except ImportError:
     from mini_flask import request, session, redirect, url_for, flash, jsonify, render_template
 
 def register_examora_routes(app, db, srv):
+    if getattr(app, '_examora_routes_registered', False):
+        return
+    app._examora_routes_registered = True
 
     # -------------------------------------------------------------
     # 1. PUBLIC ONLINE EXAM API (For https://yt-c-c.web.app/#)
@@ -316,7 +319,9 @@ def register_examora_routes(app, db, srv):
 
         try:
             actor = session.get('user_email') or session.get('admin_name') or 'TEACHER'
-            res = srv.publish_exam_online(id, actor=actor)
+            scheduled_start_at = request.form.get('scheduled_start_at')
+            scheduled_end_at = request.form.get('scheduled_end_at')
+            res = srv.publish_exam_online(id, actor=actor, scheduled_start_at=scheduled_start_at, scheduled_end_at=scheduled_end_at)
             flash(f"تم تجهيز ونشر الامتحان أونلاين بنجاح! الرابط المباشر: {res['web_link']}", 'success')
         except Exception as e:
             flash(f"تعذر نشر الامتحان: {e}", 'error')
@@ -339,9 +344,42 @@ def register_examora_routes(app, db, srv):
             flash('يرجى تسجيل الدخول للوصول إلى هذا الإجراء.', 'error')
             return redirect(url_for('login'))
 
-        synced = srv.sync_published_attempts(token, actor=session.get('user_email', 'TEACHER'))
-        flash(f'تمت مزامنة {synced} محاولة من الامتحان المنشور إلى قاعدة البيانات المحلية بنجاح.', 'success')
+        pub = db.q("SELECT local_exam_id FROM published_exams WHERE publish_token=?", (token,), one=True)
+        try:
+            synced = srv.sync_published_attempts(token, actor=session.get('user_email', 'TEACHER'))
+            flash(f'تمت مزامنة ({synced}) نتيجة من السيرفر السحابي وتحديث بيانات الامتحان محلياً بنجاح! 🔄', 'success')
+        except Exception as e:
+            flash(f'تعذر إتمام المزامنة: {e}', 'error')
+
+        if pub and pub.get('local_exam_id'):
+            return redirect(url_for('exam_manage', id=pub['local_exam_id']))
         return redirect(url_for('exams_list'))
+
+    @app.route('/api/sync/auto', methods=['GET', 'POST'])
+    def api_auto_sync_endpoint():
+        if not session.get('admin_logged_in'):
+            return jsonify({'ok': False, 'error': 'Unauthorized'}), 401
+        res = srv.auto_sync_all_active_exams(actor=session.get('user_email', 'AUTO_SYNC'))
+        return jsonify(res)
+
+    @app.route('/exams/<int:id>/sync-online', methods=['POST'])
+    def exams_sync_online_by_id(id):
+        if not session.get('admin_logged_in'):
+            flash('يرجى تسجيل الدخول للوصول إلى هذا الإجراء.', 'error')
+            return redirect(url_for('login'))
+
+        pub = db.q("SELECT publish_token FROM published_exams WHERE local_exam_id=? ORDER BY id DESC LIMIT 1", (id,), one=True)
+        if not pub or not pub.get('publish_token'):
+            flash('هذا الامتحان لم يتم نشره أونلاين بعد، لا توجد نتائج للمزامنة.', 'warning')
+            return redirect(url_for('exam_manage', id=id))
+
+        try:
+            synced = srv.sync_published_attempts(pub['publish_token'], actor=session.get('user_email', 'TEACHER'))
+            flash(f'تمت مزامنة ({synced}) نتيجة من السيرفر السحابي وتحديث بيانات الامتحان محلياً بنجاح! 🔄', 'success')
+        except Exception as e:
+            flash(f'تعذر إتمام المزامنة: {e}', 'error')
+
+        return redirect(url_for('exam_manage', id=id))
 
     @app.route('/exams/published/<token>/purge', methods=['POST'])
     def exams_purge_published(token):
@@ -360,7 +398,7 @@ def register_examora_routes(app, db, srv):
     # -------------------------------------------------------------
     # 5. TEACHERS' COMMUNITY FORUM
     # -------------------------------------------------------------
-    @app.route('/forum', methods=['GET'])
+    @app.route('/forum', methods=['GET'], endpoint='forum_home')
     def forum_home():
         if not session.get('admin_logged_in'):
             flash('يرجى تسجيل الدخول للوصول إلى منتدى الأساتذة.', 'error')
@@ -391,7 +429,7 @@ def register_examora_routes(app, db, srv):
                                selected_category=category,
                                search_query=q)
 
-    @app.route('/forum/topic/create', methods=['POST'])
+    @app.route('/forum/topic/create', methods=['POST'], endpoint='forum_create_topic')
     def forum_create_topic():
         if not session.get('admin_logged_in'):
             return redirect(url_for('login'))
@@ -412,7 +450,7 @@ def register_examora_routes(app, db, srv):
         flash('تم نشر الموضوع بنجاح في منتدى الأساتذة.', 'success')
         return redirect(url_for('forum_topic_view', id=tid))
 
-    @app.route('/forum/topic/<int:id>', methods=['GET'])
+    @app.route('/forum/topic/<int:id>', methods=['GET'], endpoint='forum_topic_view')
     def forum_topic_view(id):
         if not session.get('admin_logged_in'):
             return redirect(url_for('login'))
@@ -433,7 +471,7 @@ def register_examora_routes(app, db, srv):
                                topic=topic,
                                replies=replies)
 
-    @app.route('/forum/topic/<int:id>/reply', methods=['POST'])
+    @app.route('/forum/topic/<int:id>/reply', methods=['POST'], endpoint='forum_add_reply')
     def forum_add_reply(id):
         if not session.get('admin_logged_in'):
             return redirect(url_for('login'))
@@ -451,7 +489,7 @@ def register_examora_routes(app, db, srv):
         flash('تمت إضافة ردك بنجاح.', 'success')
         return redirect(url_for('forum_topic_view', id=id))
 
-    @app.route('/forum/topic/<int:id>/like', methods=['POST'])
+    @app.route('/forum/topic/<int:id>/like', methods=['POST'], endpoint='forum_toggle_like')
     def forum_toggle_like(id):
         if not session.get('admin_logged_in'):
             return redirect(url_for('login'))
@@ -460,7 +498,7 @@ def register_examora_routes(app, db, srv):
         srv.toggle_forum_like(id, user_email)
         return redirect(url_for('forum_topic_view', id=id))
 
-    @app.route('/forum/topic/<int:id>/delete', methods=['POST'])
+    @app.route('/forum/topic/<int:id>/delete', methods=['POST'], endpoint='forum_delete_topic')
     def forum_delete_topic(id):
         if not session.get('admin_logged_in'):
             return redirect(url_for('login'))
@@ -479,7 +517,7 @@ def register_examora_routes(app, db, srv):
     # -------------------------------------------------------------
     # 6. SUGGESTIONS & COMPLAINTS
     # -------------------------------------------------------------
-    @app.route('/complaints', methods=['GET'])
+    @app.route('/complaints', methods=['GET'], endpoint='complaints_home')
     def complaints_home():
         if not session.get('admin_logged_in'):
             flash('يرجى تسجيل الدخول للوصول إلى هذا القسم.', 'error')
@@ -493,7 +531,7 @@ def register_examora_routes(app, db, srv):
                                active='complaints',
                                tickets=tickets)
 
-    @app.route('/complaints/submit', methods=['POST'])
+    @app.route('/complaints/submit', methods=['POST'], endpoint='complaints_submit')
     def complaints_submit():
         if not session.get('admin_logged_in'):
             return redirect(url_for('login'))
@@ -515,7 +553,7 @@ def register_examora_routes(app, db, srv):
         flash(f'تم إرسال طلبك بنجاح بالرقم المرجعي: {ticket_num}. سيتم إشعارك فور رد الإدارة.', 'success')
         return redirect(url_for('complaints_home'))
 
-    @app.route('/admin/complaints', methods=['GET'])
+    @app.route('/admin/complaints', methods=['GET'], endpoint='admin_complaints_view')
     def admin_complaints_view():
         if not session.get('admin_logged_in') or not session.get('is_super_admin'):
             flash('هذه الشاشة مخصصة لإدارة النظام فقط.', 'error')
@@ -540,7 +578,7 @@ def register_examora_routes(app, db, srv):
                                total_count=total_cnt,
                                selected_status=status_filter)
 
-    @app.route('/admin/complaints/<int:id>/respond', methods=['POST'])
+    @app.route('/admin/complaints/<int:id>/respond', methods=['POST'], endpoint='admin_respond_ticket')
     def admin_respond_ticket(id):
         if not session.get('admin_logged_in') or not session.get('is_super_admin'):
             return redirect(url_for('dashboard'))

@@ -42,26 +42,6 @@
       </div>
 
       <nav class="sidebar-nav" id="sidebarAccordion">
-        <!-- Student Portal Quick Access & Copy Box -->
-        <div style="margin: 0 0 14px; background: linear-gradient(135deg, #eff6ff, #f0fdf4); border: 1.5px solid #bfdbfe; border-radius: 12px; padding: 12px; text-align: center; box-shadow: 0 2px 6px rgba(37,99,235,0.06);">
-          <div style="font-size: 13px; font-weight: 800; color: #1e40af; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; gap: 6px;">
-            <span>🎓</span>
-            <span>بوابة تقديم الطلاب</span>
-          </div>
-          <div style="display: flex; gap: 6px; margin-bottom: 6px;">
-            <a href="{{ url_for('student_login') }}" target="_blank" class="btn btn-primary btn-sm" style="flex: 1; font-size: 11px; padding: 6px 4px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 4px;" title="فتح صفحة دخول الطلاب في نافذة جديدة">
-              <span>دخول الطالب</span>
-              <span>↗</span>
-            </a>
-            <button type="button" onclick="copyStudentPortalUrl()" class="btn btn-secondary btn-sm" style="flex: 1; font-size: 11px; padding: 6px 4px; font-weight: 800; background: #334155; color: #fff; display: flex; align-items: center; justify-content: center; gap: 4px;" title="نسخ رابط صفحة الطلاب لإرساله للطلاب">
-              <span>📋 نسخ الرابط</span>
-            </button>
-          </div>
-          <div style="font-size: 10px; color: #64748b; font-family: monospace;" id="studentPortalUrlText">
-            http://127.0.0.1:8765/student
-          </div>
-        </div>
-
         <!-- 0. Dashboard -->
         <a href="{{ url_for('dashboard') }}" class="btn-windows {{ 'active' if active == 'dashboard' else '' }}" style="text-decoration: none; margin-bottom: 8px; justify-content: flex-start; gap: 8px; {{ 'background: #e0f2fe; border-color: #38bdf8; color: #0369a1 !important;' if active == 'dashboard' else '' }}">
           <span class="nav-icon" style="font-size: 16px;">⌂</span>
@@ -101,7 +81,7 @@
           </button>
           <div class="nav-accordion-body">
             <a href="{{ url_for('import_center') }}" class="nav-link {{ 'active' if active == 'import' else '' }}">
-              <span class="nav-icon">⚡</span> استخراج الأسئلة من الصور (OSR) <span class="badge-ai-sparkle">AI</span>
+              <span class="nav-icon">⚡</span> استخراج الأسئلة من الصور والمستندات <span class="badge-ai-sparkle">AI</span>
             </a>
             <a href="{{ url_for('curriculum_generator_view') }}" class="nav-link {{ 'active' if active == 'curriculum_gen' else '' }}">
               <span class="nav-icon">💡</span> توليد الأسئلة من نصوص المنهاج <span class="badge-ai-sparkle">AI</span>
@@ -261,13 +241,29 @@
     <main class="main-wrapper">
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-          <div class="no-print">
-            {% for category, message in messages %}
-              <div class="alert-banner alert-{{ 'danger' if category in ('error', 'danger') else 'success' }}">
-                <span>{{ message }}</span>
-              </div>
-            {% endfor %}
-          </div>
+          <script>
+            document.addEventListener('DOMContentLoaded', () => {
+              {% for category, message in messages %}
+                {% if category in ('error', 'danger') %}
+                  if (typeof showAlertModal === 'function') {
+                    showAlertModal({{ message|tojson }}, 'تنبيه إداري من المنظومة', '⚠️');
+                  } else {
+                    alert({{ message|tojson }});
+                  }
+                {% elif category == 'warning' %}
+                  if (typeof showAlertModal === 'function') {
+                    showAlertModal({{ message|tojson }}, 'تنبيه هام', '⚠️');
+                  } else {
+                    alert({{ message|tojson }});
+                  }
+                {% else %}
+                  if (typeof showToast === 'function') {
+                    showToast({{ message|tojson }}, 'success', 5000);
+                  }
+                {% endif %}
+              {% endfor %}
+            });
+          </script>
         {% endif %}
       {% endwith %}
 
@@ -285,19 +281,64 @@
       </div>
 
       {% block content %}{% endblock %}
+
+      <!-- Footer with Designer Credit -->
+      <footer class="no-print" style="margin-top: 50px; border-top: 1px solid var(--border); padding: 24px 10px;">
+        <div class="footer-bottom">
+          <p>© 2026 جميع الحقوق محفوظة منظومة Examora AI للتقييم والاختبارات الذكية © 2026 - جميع الحقوق محفوظة</p>
+          <p class="designer-credit">
+            <span class="designer-label">تصميم وتطوير:</span>
+            <a href="https://htst-d.web.app/" target="_blank" rel="noopener noreferrer" class="logo-text">
+              <span class="logo-char">H</span>
+              <span class="logo-char">T</span>
+              <span class="logo-space"></span>
+              <span class="logo-char">S</span>
+              <span class="logo-char">T</span>
+              <span class="logo-char">U</span>
+              <span class="logo-char">D</span>
+              <span class="logo-char">I</span>
+              <span class="logo-char">O</span>
+              <span class="logo-space"></span>
+              <span class="logo-char">D</span>
+              <span class="logo-char">E</span>
+              <span class="logo-char">S</span>
+              <span class="logo-char">I</span>
+              <span class="logo-char">G</span>
+              <span class="logo-char">N</span>
+            </a>
+          </p>
+        </div>
+      </footer>
     </main>
   </div>
 
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
   {% block scripts %}{% endblock %}
 <script>
+function copyCloudPortalUrl() {
+  const url = 'https://yt-c-c.web.app';
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      showToast('✓ تم نسخ رابط بوابة الامتحانات السحابية بنجاح', 'success');
+    }).catch(() => {
+      showAlertModal('رابط بوابة الامتحانات السحابية هو:\n' + url, 'نسخ الرابط', '🌐');
+    });
+  } else {
+    showAlertModal('رابط بوابة الامتحانات السحابية هو:\n' + url, 'نسخ الرابط', '🌐');
+  }
+}
+
 function copyStudentPortalUrl() {
   const url = window.location.origin + '/student';
-  navigator.clipboard.writeText(url).then(() => {
-    alert('✓ تم نسخ رابط بوابة الطلاب بنجاح:\n' + url + '\n\nيمكنك الآن لصقه وإرساله للطلاب عبر الواتساب.');
-  }).catch(() => {
-    prompt('انسخ الرابط التالي:', url);
-  });
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      showToast('✓ تم نسخ رابط بوابة المدرسة المحلية بنجاح', 'success');
+    }).catch(() => {
+      showAlertModal('رابط بوابة المدرسة المحلية هو:\n' + url, 'نسخ الرابط', '🏫');
+    });
+  } else {
+    showAlertModal('رابط بوابة المدرسة المحلية هو:\n' + url, 'نسخ الرابط', '🏫');
+  }
 }
 </script>
 </body>

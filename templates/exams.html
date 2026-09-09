@@ -91,10 +91,17 @@
                     <span class="badge badge-warning">مسودة</span>
                   {% endif %}
                 </td>
-                <td style="text-align: center;">
+                <td style="text-align: center; white-space: nowrap;">
                   <a href="{{ url_for('exam_manage', id=ex.id) }}" class="btn btn-primary btn-sm" style="padding: 6px 14px; font-weight: 700;">
                     ⚙️ إدارة الامتحان
                   </a>
+                  {% if ex.publish_token %}
+                    <form action="{{ url_for('exams_sync_online_by_id', id=ex.id) }}" method="POST" style="display:inline; margin-right: 4px;">
+                      <button type="submit" class="btn btn-sm" style="background: #16a34a; color: white; padding: 6px 10px; font-weight: 700; border: none; border-radius: 6px; cursor: pointer;" title="مزامنة نتائج الطلاب من السيرفر السحابي">
+                        🔄 مزامنة
+                      </button>
+                    </form>
+                  {% endif %}
                 </td>
               </tr>
             {% endfor %}

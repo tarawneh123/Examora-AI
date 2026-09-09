@@ -53,10 +53,16 @@ class OnlineDatabase:
                     cur.execute("ALTER TABLE online_exams ADD COLUMN idempotency_key TEXT;")
                 if 'exam_code' not in cols:
                     cur.execute("ALTER TABLE online_exams ADD COLUMN exam_code TEXT;")
+                if 'scheduled_start_at' not in cols:
+                    cur.execute("ALTER TABLE online_exams ADD COLUMN scheduled_start_at TEXT;")
+                if 'scheduled_end_at' not in cols:
+                    cur.execute("ALTER TABLE online_exams ADD COLUMN scheduled_end_at TEXT;")
             else:
                 try:
                     cur.execute("ALTER TABLE online_exams ADD COLUMN IF NOT EXISTS exam_code VARCHAR(32);")
                     cur.execute("ALTER TABLE online_exams ADD COLUMN IF NOT EXISTS idempotency_key VARCHAR(128);")
+                    cur.execute("ALTER TABLE online_exams ADD COLUMN IF NOT EXISTS scheduled_start_at VARCHAR(64);")
+                    cur.execute("ALTER TABLE online_exams ADD COLUMN IF NOT EXISTS scheduled_end_at VARCHAR(64);")
                 except Exception:
                     pass
             con.commit()

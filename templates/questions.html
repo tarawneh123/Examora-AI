@@ -42,6 +42,14 @@
     }
   }
 </script>
+<script>
+function setTrueFalseAddModal() {
+  document.getElementById('add_opt_a').value = 'صح';
+  document.getElementById('add_opt_b').value = 'خطأ';
+  document.getElementById('add_opt_c').value = '';
+  document.getElementById('add_opt_d').value = '';
+}
+</script>
 {% endblock %}
 
 {% block content %}
@@ -157,7 +165,7 @@
                   <div class="modal-title">تعديل السؤال #{{ loop.index }} <span style="font-size: 11px; font-weight: normal; color: var(--text-muted);">(معرف #{{ q.id }})</span></div>
                   <button type="button" class="close-btn" data-modal-close>&times;</button>
                 </div>
-                <form action="{{ url_for('save_question') }}" method="POST">
+                <form action="{{ url_for('save_question') }}" method="POST" enctype="multipart/form-data">
                   <input type="hidden" name="id" value="{{ q.id }}">
                   <input type="hidden" name="redirect_to" value="bank">
 
@@ -186,6 +194,17 @@
                     <textarea name="question" class="form-control" required>{{ q.question }}</textarea>
                   </div>
 
+                  <div class="form-group">
+                    <label>صورة أو رسم توضيحي للسؤال (اختياري):</label>
+                    {% if q.image_path %}
+                      <div style="margin-bottom: 8px;">
+                        <img src="{{ url_for('uploaded_question_image', filename=q.image_path) }}" alt="صورة السؤال" style="max-height: 100px; border-radius: 6px; border: 1px solid #cbd5e1;">
+                        <input type="hidden" name="existing_image_path" value="{{ q.image_path }}">
+                      </div>
+                    {% endif %}
+                    <input type="file" name="image" class="form-control" accept="image/*">
+                  </div>
+
                   <div class="form-grid-2">
                     <div class="form-group">
                       <label>الخيار أ / A:</label>
@@ -197,11 +216,11 @@
                     </div>
                     <div class="form-group">
                       <label>الخيار ج / C:</label>
-                      <input type="text" name="option_c" class="form-control" value="{{ q.option_c }}" required>
+                      <input type="text" name="option_c" class="form-control" value="{{ q.option_c }}" placeholder="(اختياري - اتركه فارغاً لأسئلة صح/خطأ)">
                     </div>
                     <div class="form-group">
                       <label>الخيار د / D:</label>
-                      <input type="text" name="option_d" class="form-control" value="{{ q.option_d }}" required>
+                      <input type="text" name="option_d" class="form-control" value="{{ q.option_d }}" placeholder="(اختياري - اتركه فارغاً لأسئلة صح/خطأ)">
                     </div>
                   </div>
 
@@ -259,7 +278,7 @@
       <div class="modal-title">إضافة سؤال جديد يدويًا</div>
       <button type="button" class="close-btn" data-modal-close>&times;</button>
     </div>
-    <form action="{{ url_for('save_question') }}" method="POST">
+    <form action="{{ url_for('save_question') }}" method="POST" enctype="multipart/form-data">
       <input type="hidden" name="status" value="APPROVED">
       <input type="hidden" name="redirect_to" value="bank">
 
@@ -288,22 +307,34 @@
         <textarea name="question" class="form-control" placeholder="اكتب نص السؤال بدقة..." required></textarea>
       </div>
 
+      <div class="form-group">
+        <label>صورة أو رسم توضيحي للسؤال (اختياري):</label>
+        <input type="file" name="image" class="form-control" accept="image/*">
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <label style="margin: 0; font-weight: 700;">خيارات الإجابة:</label>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="setTrueFalseAddModal()" style="font-size: 11.5px; padding: 2px 10px;">
+          ⚡ تحويل إلى: صح أم خطأ
+        </button>
+      </div>
+
       <div class="form-grid-2">
         <div class="form-group">
           <label>الخيار أ / Option A:</label>
-          <input type="text" name="option_a" class="form-control" placeholder="نص الخيار الأول" required>
+          <input type="text" id="add_opt_a" name="option_a" class="form-control" placeholder="نص الخيار الأول" required>
         </div>
         <div class="form-group">
           <label>الخيار ب / Option B:</label>
-          <input type="text" name="option_b" class="form-control" placeholder="نص الخيار الثاني" required>
+          <input type="text" id="add_opt_b" name="option_b" class="form-control" placeholder="نص الخيار الثاني" required>
         </div>
         <div class="form-group">
-          <label>الخيار ج / Option C:</label>
-          <input type="text" name="option_c" class="form-control" placeholder="نص الخيار الثالث" required>
+          <label>الخيار ج / Option C (اختياري):</label>
+          <input type="text" id="add_opt_c" name="option_c" class="form-control" placeholder="(اختياري - اتركه فارغاً لأسئلة صح/خطأ)">
         </div>
         <div class="form-group">
-          <label>الخيار د / Option D:</label>
-          <input type="text" name="option_d" class="form-control" placeholder="نص الخيار الرابع" required>
+          <label>الخيار د / Option D (اختياري):</label>
+          <input type="text" id="add_opt_d" name="option_d" class="form-control" placeholder="(اختياري - اتركه فارغاً لأسئلة صح/خطأ)">
         </div>
       </div>
 

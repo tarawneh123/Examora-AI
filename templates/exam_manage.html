@@ -6,16 +6,95 @@
       <button type="submit" class="btn btn-warning">إيقاف النشر</button>
     </form>
   {% else %}
-    <form action="{{ url_for('exams_publish_online', id=exam.id) }}" method="POST" style="display:inline;">
-      <button type="submit" class="btn btn-success">نشر الامتحان الآن</button>
+    <form action="{{ url_for('exams_publish_online', id=exam.id) }}" method="POST" style="display:inline;" onsubmit="showPublishLoadingOverlay()">
+      <button type="submit" class="btn btn-success" style="font-weight: 800;">🚀 نشر الامتحان الآن</button>
+    </form>
+    <button type="button" class="btn btn-secondary" data-modal-open="publishScheduleModal" style="font-weight: 700;">
+      ⏱️ جدولة توقيت النشر
+    </button>
+  {% endif %}
+  {% if published_online and published_online.publish_token %}
+    <form action="{{ url_for('exams_sync_online_by_id', id=exam.id) }}" method="POST" style="display:inline;">
+      <button type="submit" class="btn btn-primary" style="background: #16a34a; border-color: #16a34a; color: white; display: inline-flex; align-items: center; gap: 6px; font-weight: 800;">
+        <span>🔄</span>
+        <span>مزامنة النتائج من السيرفر</span>
+      </button>
     </form>
   {% endif %}
   <a href="{{ url_for('print_exam', id=exam.id) }}" class="btn btn-secondary" target="_blank">🖨️ طباعة ورقة الامتحان</a>
   <a href="{{ url_for('export_exam_pdf', id=exam.id) }}" class="btn btn-secondary">📄 تحميل PDF</a>
+
+<!-- Modal: Schedule Online Exam -->
+<div class="modal-overlay" id="publishScheduleModal" style="display: none;">
+  <div class="modal-content" style="max-width: 520px;">
+    <div class="modal-header">
+      <div class="modal-title">⏱️ جدولة موعد نشر الامتحان أونلاين</div>
+      <button type="button" class="close-btn" data-modal-close>&times;</button>
+    </div>
+    <form action="{{ url_for('exams_publish_online', id=exam.id) }}" method="POST" onsubmit="showPublishLoadingOverlay()">
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 13px; color: #475569;">
+        📌 يمكنك تحديد وقت وساعة محددة لبدء الامتحان (مثلاً 04:00 مساءً أو 08:30 صباحاً)، ولن يتمكن أي طالب من فتح الأسئلة قبل هذا الموعد.
+      </div>
+
+      <div class="form-group">
+        <label style="font-weight: 700; color: #1e293b;">موعد بدء الامتحان:</label>
+        <input type="datetime-local" name="scheduled_start_at" class="form-control" required>
+        <small style="color: #64748b; font-size: 11.5px;">حدد وقت فتح القاعة للطلاب.</small>
+      </div>
+
+      <div class="form-group">
+        <label style="font-weight: 700; color: #1e293b;">موعد إغلاق القاعة النهائي (اختياري):</label>
+        <input type="datetime-local" name="scheduled_end_at" class="form-control">
+        <small style="color: #64748b; font-size: 11.5px;">الحد الأقصى لانتهاء صلاحية رابط الامتحان بالكامل.</small>
+      </div>
+
+      <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 10px 14px; margin-bottom: 20px; font-size: 13px; font-weight: 700; color: #1e40af;">
+        ⏱️ مدة الامتحان المخصصة لكل طالب: {{ exam.duration }} دقيقة
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" class="btn btn-secondary" data-modal-close>إلغاء</button>
+        <button type="submit" class="btn btn-success" style="font-weight: 800; padding: 10px 22px;">🚀 اعتماد ونشر الامتحان بالميعاد المجدول</button>
+      </div>
+    </form>
+  </div>
+</div>
 {% endblock %}
 
 {% block content %}
-{% if published_online and published_online.publish_token and (exam.status == 'PUBLISHED' or exam.active or published_online.status == 'ACTIVE') %}
+<!-- Auto-Sync Schedule & Traffic Protection Notice -->
+<div style="background: rgba(14, 165, 233, 0.08); border: 1.5px solid rgba(56, 189, 248, 0.35); border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+  <div style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: #0369a1; font-weight: 800;">
+    <span style="font-size: 1.4rem;">⚡</span>
+    <span>نظام المزامنة الذكي وترشيد الترافيك: تجري المزامنة التلقائية كل <strong>(5 دقائق)</strong> أثناء فترة الامتحان النشط، وتتوقف نهائياً بعد انتهاء وقت الامتحان بـ <strong>(15 دقيقة)</strong> لتقليل استهلاك حزمة البيانات وحفظ موارد السيرفر.</span>
+  </div>
+  <div style="font-size: 12px; color: #64748b; font-weight: 700;">
+    💡 ملحوظة: زر "مزامنة درجات الطلاب الآن" يتيح لك السحب الفوري في أي لحظة.
+  </div>
+</div>
+
+<!-- Fullscreen Loading Overlay on Publishing (Takes ~1.5 mins) -->
+<div id="publishLoadingOverlay" style="display: none; position: fixed; inset: 0; z-index: 999999; background: rgba(7, 11, 20, 0.88); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); align-items: center; justify-content: center; text-align: center; direction: rtl; font-family: Cairo, sans-serif; padding: 20px;">
+  <div style="background: rgba(15, 23, 42, 0.96); border: 1.5px solid rgba(56, 189, 248, 0.4); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.85), 0 0 35px rgba(56, 189, 248, 0.25); border-radius: 20px; padding: 38px 30px; max-width: 520px; width: 100%;">
+    <div style="width: 55px; height: 55px; border: 4px solid rgba(56, 189, 248, 0.2); border-top-color: #38bdf8; border-radius: 50%; animation: spinOverlay 1s infinite linear; margin: 0 auto 20px;"></div>
+    <h3 style="font-size: 1.4rem; font-weight: 900; color: #ffffff; margin-bottom: 12px;">جارٍ تهيئة ونشر الامتحان سحابياً 🚀</h3>
+    <p style="font-size: 0.98rem; color: #cbd5e1; line-height: 1.8; margin-bottom: 18px;">
+      ⏳ يرجى الانتظار، تستغرق عملية تجهيز السيرفر وتشفير رزمة الأسئلة وعزل مفتاح الإجابة قرابة <strong>(دقيقة ونصف)</strong> لضمان حماية الامتحان من التسريب واستقرار القاعة السحابية.
+    </p>
+    <div style="font-size: 0.88rem; color: #94a3b8; background: rgba(30, 41, 59, 0.7); padding: 10px 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08);">
+      ⚠️ يُرجى عدم إغلاق هذه الصفحة حتى يكتمل النشر وتوليد رمز الـ PIN تلقائياً.
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes spinOverlay {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>
+
+{% if published_online and published_online.publish_token %}
 <!-- Banner: Online Student Exam Link -->
 <div class="card" style="border: 2px solid #2563eb; background: #eff6ff; margin-bottom: 20px; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.12);">
   <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
@@ -25,8 +104,24 @@
         <span>رابط امتحان الطلاب (Firebase Online):</span>
       </div>
       <div style="direction: ltr; text-align: left; font-family: monospace; font-size: 14.5px; font-weight: 800; color: #0f172a; word-break: break-all; background: #ffffff; padding: 8px 14px; border-radius: 8px; border: 1px solid #bfdbfe;" id="studentExamLink">https://yt-c-c.web.app/#/e/{{ published_online.publish_token }}</div>
+      <div style="display: flex; align-items: center; gap: 10px; margin-top: 8px; flex-wrap: wrap;">
+        <div style="display: inline-flex; align-items: center; gap: 6px;">
+          <span style="font-size: 12.5px; font-weight: 700; color: #475569;">رمز الدخول السريع (PIN):</span>
+          <span style="font-family: monospace; font-size: 15px; font-weight: 900; background: #dbeafe; color: #1e40af; padding: 3px 10px; border-radius: 6px; letter-spacing: 1.5px;" id="studentExamPin">{{ exam.exam_code or '702072' }}</span>
+        </div>
+        <button type="button" onclick="copyWhatsAppMessage()" id="btnCopyWhatsApp" style="font-size: 12.5px; font-weight: 700; background: #22c55e; color: white; border: none; padding: 4px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+          <span>📲</span>
+          <span>نسخ رسالة التكليف للواتساب</span>
+        </button>
+      </div>
     </div>
-    <div style="display: flex; gap: 10px; align-items: center;">
+    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+      <form action="{{ url_for('exams_sync_published', token=published_online.publish_token) }}" method="POST" style="display:inline;">
+        <button type="submit" class="btn btn-success" style="font-weight: 800; padding: 9px 18px; background: #16a34a; border: none; color: white; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; border-radius: 8px;">
+          <span>🔄</span>
+          <span>مزامنة درجات الطلاب الآن</span>
+        </button>
+      </form>
       <button type="button" class="btn btn-primary" onclick="copyExamLink()" id="btnCopyLink" style="font-weight: 800; padding: 9px 18px;">
         📋 نسخ رابط الامتحان
       </button>
@@ -38,6 +133,41 @@
 </div>
 
 <script>
+function copyLocalLabUrl() {
+  const url = window.location.origin + '/student/login';
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      if (typeof showToast === 'function') {
+        showToast('✓ تم نسخ رابط قاعة مختبر الحاسوب بنجاح', 'success');
+      } else {
+        alert('✓ تم نسخ الرابط بنجاح');
+      }
+    });
+  } else {
+    fallbackCopy(url);
+  }
+}
+
+
+function showPublishLoadingOverlay() {
+  const overlay = document.getElementById('publishLoadingOverlay');
+  if (overlay) overlay.style.display = 'flex';
+}
+
+// Smart Auto-Sync: Polls every 5 minutes (300,000ms) only during active window
+setInterval(() => {
+  fetch('/api/sync/auto', { method: 'POST' })
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.total_attempts_synced > 0) {
+        if (typeof showToast === 'function') {
+          showToast(`🔄 تمت المزامنة التلقائية: تم استيراد (${data.total_attempts_synced}) محاولة جديدة بنجاح!`, 'success');
+        }
+        setTimeout(() => window.location.reload(), 2000);
+      }
+    }).catch(() => {});
+}, 300000);
+
 function copyExamLink() {
   const linkText = document.getElementById('studentExamLink').innerText.trim();
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -48,6 +178,24 @@ function copyExamLink() {
     });
   } else {
     fallbackCopy(linkText);
+  }
+}
+
+function copyWhatsAppMessage() {
+  const pin = (document.getElementById('studentExamPin') ? document.getElementById('studentExamPin').innerText.trim() : '');
+  const link = (document.getElementById('studentExamLink') ? document.getElementById('studentExamLink').innerText.trim() : '');
+  const msg = 'السلام عليكم ورحمة الله وبركاته،\nأعزائي الطلاب، إليكم رابط قاعة الامتحان الإلكتروني:\n📌 الرابط: ' + link + '\n🔑 رمز الدخول السريع (PIN): ' + pin + '\n⏱️ مدة الامتحان: {{ exam.duration }} دقيقة\nمع تمنياتي لكم بالتوفيق والنجاح.';
+  
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(msg).then(() => {
+      const btn = document.getElementById('btnCopyWhatsApp');
+      if (btn) {
+        btn.innerText = '✅ تم نسخ الرسالة!';
+        setTimeout(() => { btn.innerHTML = '<span>📲</span> <span>نسخ رسالة التكليف للواتساب</span>'; }, 2500);
+      }
+    });
+  } else {
+    fallbackCopy(msg);
   }
 }
 
@@ -119,6 +267,59 @@ function fallbackCopy(text) {
   </div>
 </div>
 
+<!-- Dual-Mode Examination Options (School Lab vs Cloud Online) -->
+<div class="card" style="border: 2px solid rgba(56, 189, 248, 0.4); background: rgba(15, 23, 42, 0.02); border-radius: 14px; padding: 18px 20px; margin-bottom: 22px;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+    <div style="font-size: 15.5px; font-weight: 900; color: #1e3a8a; display: flex; align-items: center; gap: 8px;">
+      <span>🚀</span>
+      <span>خيارات تقديم هذا الامتحان (تقديم محلي في المدرسة VS تقديم أونلاين في البيت):</span>
+    </div>
+    <span class="badge badge-info" style="font-size: 12px; font-weight: 800;">طريقتان للتقديم</span>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+    <!-- Mode 1: School Computer Lab -->
+    <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
+      <div style="font-size: 14px; font-weight: 800; color: #0f172a; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+        <span>🏫</span> 1. تقديم محلي في المدرسة (مختبر الحاسوب)
+      </div>
+      <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">
+        للتقديم داخل مختبر الحاسوب المدرسي عبر الشبكة الداخلية بدون اتصال بالإنترنت.
+      </p>
+      <div style="font-size: 11.5px; font-family: monospace; background: #f8fafc; padding: 6px 10px; border-radius: 6px; border: 1px solid #e2e8f0; margin-bottom: 10px; word-break: break-all;">
+        http://127.0.0.1:8765/student/login
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <a href="{{ url_for('student_login') }}" target="_blank" class="btn btn-secondary btn-sm" style="flex: 1; font-weight: 800; text-align: center;">فتح قاعة المختبر ↗</a>
+        <button type="button" onclick="copyLocalLabUrl()" class="btn btn-primary btn-sm" style="flex: 1; font-weight: 800;">📋 نسخ الرابط</button>
+      </div>
+    </div>
+
+    <!-- Mode 2: Online Cloud Exam -->
+    <div style="background: #ffffff; border: 1.5px solid #93c5fd; border-radius: 12px; padding: 16px; box-shadow: 0 2px 6px rgba(37,99,235,0.06);">
+      <div style="font-size: 14px; font-weight: 800; color: #1d4ed8; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+        <span>🌐</span> 2. تقديم أونلاين في البيت (السحابة عبر الإنترنت)
+      </div>
+      <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">
+        للتقديم من المنازل عبر الهواتف والكمبيوتر مع حفظ لحظي وتصحيح خادمي مباشر.
+      </p>
+      {% if published_online and published_online.publish_token %}
+        <div style="font-size: 11.5px; font-family: monospace; background: #eff6ff; padding: 6px 10px; border-radius: 6px; border: 1px solid #bfdbfe; margin-bottom: 10px; word-break: break-all; color: #1e40af; font-weight: 800;">
+          https://yt-c-c.web.app/#/e/{{ published_online.publish_token }}
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <a href="https://yt-c-c.web.app/#/e/{{ published_online.publish_token }}" target="_blank" class="btn btn-success btn-sm" style="flex: 1; font-weight: 800; text-align: center;">فتح قاعة الأونلاين ↗</a>
+          <button type="button" onclick="copyExamLink()" class="btn btn-primary btn-sm" style="flex: 1; font-weight: 800;">📋 نسخ الرابط والـ PIN</button>
+        </div>
+      {% else %}
+        <div style="font-size: 12px; color: #b45309; background: #fffbeb; border: 1px dashed #fcd34d; padding: 8px 12px; border-radius: 6px; margin-bottom: 10px;">
+          ⚠️ لم يتم تفعيل الامتحان سحابياً بعد. اضغط زر "نشر الامتحان الآن" في الأعلى لنشره.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
 <!-- Section 2: Questions Attached to Exam -->
 <div class="card">
   <div class="card-header">
@@ -162,9 +363,19 @@ function fallbackCopy(text) {
 
 <!-- Section 3: Attendees / Students who Attempted -->
 <div class="card">
-  <div class="card-header">
-    <div class="card-title">الطلاب المتقدمون للامتحان (سجل المحاولات)</div>
-    <span class="badge badge-info">{{ attendees|length }} طالب</span>
+  <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div class="card-title">الطلاب المتقدمون للامتحان (سجل المحاولات والنتائج)</div>
+      <span class="badge badge-info">{{ attendees|length }} طالب</span>
+    </div>
+    {% if published_online and published_online.publish_token %}
+      <form action="{{ url_for('exams_sync_online_by_id', id=exam.id) }}" method="POST" style="display:inline; margin:0;">
+        <button type="submit" class="btn btn-sm" style="background: #16a34a; color: white; font-weight: 800; border: none; padding: 6px 14px; border-radius: 6px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
+          <span>🔄</span>
+          <span>تحديث ومزامنة درجات الطلاب</span>
+        </button>
+      </form>
+    {% endif %}
   </div>
 
   {% if attendees %}

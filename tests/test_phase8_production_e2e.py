@@ -58,6 +58,9 @@ class TestPhase8ProductionE2E(unittest.TestCase):
         ''', (self.local_exam['subject_id'],), one=True)
         if self.local_student:
             self.online_db.x('DELETE FROM online_attempts WHERE student_national_id=?', (self.local_student['national_id'],))
+        # Clear prior staging for this exam to ensure fresh single cycle
+        self.local_db.x('DELETE FROM published_exams WHERE local_exam_id=?', (self.local_exam['id'],))
+        self.online_db.x('DELETE FROM online_exams WHERE idempotency_key=?', (f"EXAMORA-LOCAL-EXAM-{self.local_exam['id']}",))
 
     def tearDown(self):
         self.local_srv._call_online_api = self.orig_call

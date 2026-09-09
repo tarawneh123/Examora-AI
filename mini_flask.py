@@ -330,8 +330,10 @@ class Flask:
         self.config = {'MAX_CONTENT_LENGTH': 100 * 1024 * 1024}
         self.routes = []
         self.endpoint_map = {}
+        self.view_functions = {}
         self.error_handlers = {}
         self._context_processors = []
+        self.before_request_funcs = []
 
         template_path = os.path.join(os.path.dirname(__file__), template_folder)
         self.jinja_env = jinja2.Environment(
@@ -348,6 +350,10 @@ class Flask:
 
     def context_processor(self, f):
         self._context_processors.append(f)
+        return f
+
+    def before_request(self, f):
+        self.before_request_funcs.append(f)
         return f
 
     def route(self, rule, methods=None, endpoint=None):
@@ -391,6 +397,9 @@ class Flask:
             regex_pattern += r'$'
         
         compiled_regex = re.compile(regex_pattern)
+        if endpoint in self.view_functions and self.view_functions[endpoint] is not view_func:
+            raise AssertionError(f"View function mapping is overwriting an existing endpoint function: {endpoint}")
+        self.view_functions[endpoint] = view_func
         self.routes.append((compiled_regex, methods, endpoint, view_func, var_names, rule))
         self.endpoint_map[endpoint] = (rule, var_names)
 
@@ -485,7 +494,27 @@ class Flask:
 
         res = None
         try:
-            if not matched_route:
+            for b_func in self.before_request_funcs:
+                b_res = b_func()
+                if b_res is not None:
+                    if isinstance(b_res, Response):
+                        res = b_res
+                    elif isinstance(b_res, tuple):
+                        body = b_res[0]
+                        status = b_res[1] if len(b_res) > 1 else 200
+                        hdrs = b_res[2] if len(b_res) > 2 else {}
+                        if isinstance(body, Response):
+                            res = body
+                            res.status_code = status
+                        else:
+                            res = Response(body, status=status, headers=hdrs)
+                    else:
+                        res = Response(b_res)
+                    break
+
+            if res is not None:
+                pass
+            elif not matched_route:
                 if 404 in self.error_handlers:
                     res = self.error_handlers[404](None)
                 else:

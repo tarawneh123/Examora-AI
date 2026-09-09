@@ -1009,3 +1009,303 @@ textarea.form-control {
   font-weight: normal !important;
   line-height: 1.5 !important;
 }
+
+/* ==========================================================================
+   Designer Credit & Windows Glassmorphism Overrides
+   ========================================================================== */
+.footer-bottom {
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.92rem;
+  padding: 16px 0;
+}
+.designer-credit {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.designer-label {
+  color: #64748b;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+.logo-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  text-decoration: none;
+  font-family: monospace, system-ui;
+  font-weight: 900;
+  font-size: 1.05rem;
+  letter-spacing: 1px;
+}
+.logo-char {
+  background: linear-gradient(135deg, #38bdf8 30%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  transition: all 0.2s ease;
+}
+.logo-text:hover .logo-char {
+  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.8));
+}
+.logo-space {
+  display: inline-block;
+  width: 8px;
+}
+
+/* Windows Glassmorphism Buttons & Accordion Navigation */
+.sidebar .btn-windows {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  width: 100% !important;
+  padding: 11px 16px !important;
+  background: rgba(15, 23, 42, 0.85) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  border-radius: 10px !important;
+  color: #f1f5f9 !important;
+  font-family: inherit !important;
+  font-size: 13.5px !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  text-align: right !important;
+  margin-bottom: 7px !important;
+  box-sizing: border-box !important;
+}
+
+.sidebar .btn-windows:hover {
+  background: rgba(30, 41, 59, 0.95) !important;
+  border-color: rgba(56, 189, 248, 0.6) !important;
+  color: #38bdf8 !important;
+  box-shadow: 0 6px 20px rgba(56, 189, 248, 0.25) !important;
+  transform: translateY(-2px) !important;
+}
+
+.sidebar .nav-accordion-group {
+  margin-bottom: 8px !important;
+}
+
+.sidebar .nav-accordion-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+  opacity: 0;
+  padding-right: 12px;
+  background: rgba(15, 23, 42, 0.45);
+  border-radius: 8px;
+  border-right: 2.5px solid rgba(56, 189, 248, 0.5);
+  margin-right: 4px;
+}
+
+.sidebar .nav-accordion-group.open .nav-accordion-body {
+  max-height: 520px;
+  opacity: 1;
+  margin-bottom: 12px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.sidebar .nav-accordion-group.open .btn-windows {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.25), rgba(37, 99, 235, 0.25)) !important;
+  border-color: #38bdf8 !important;
+  color: #38bdf8 !important;
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.25) !important;
+}
+
+.sidebar .nav-link {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 8px 12px !important;
+  color: #cbd5e1 !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+  margin-bottom: 4px !important;
+}
+
+.sidebar .nav-link:hover {
+  background: rgba(56, 189, 248, 0.15) !important;
+  color: #38bdf8 !important;
+  transform: translateX(-4px) !important;
+}
+
+.sidebar .nav-link.active {
+  background: rgba(56, 189, 248, 0.22) !important;
+  color: #38bdf8 !important;
+  font-weight: 800 !important;
+}
+
+/* Strict A4 Print Formatting */
+@page {
+  size: A4 portrait;
+  margin: 10mm 12mm;
+}
+
+@media print {
+  html, body {
+    width: 210mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 10.5pt !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  .no-print, .sidebar, .navbar, .header-actions, .btn, .print-toolbar, .hamburger-btn, .footer-bottom, .modal-overlay {
+    display: none !important;
+  }
+  .paper-sheet, .print-sheet, .table-responsive, .card {
+    border: none !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto !important;
+  }
+  tr, .question-block, .result-card {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
+
+/* ==========================================================================
+   Designer Logo LTR Fix & Continuous Wave Animation
+   ========================================================================== */
+.designer-credit {
+  margin-top: 10px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  flex-wrap: wrap !important;
+}
+
+.designer-label {
+  color: #64748b !important;
+  font-weight: 800 !important;
+  font-size: 0.9rem !important;
+}
+
+.logo-text {
+  direction: ltr !important;
+  display: inline-flex !important;
+  flex-direction: row !important;
+  unicode-bidi: isolate !important;
+  align-items: center !important;
+  gap: 2.5px !important;
+  text-decoration: none !important;
+  font-family: monospace, system-ui, sans-serif !important;
+  font-weight: 900 !important;
+  font-size: 1.15rem !important;
+  letter-spacing: 1.5px !important;
+}
+
+@keyframes letterWave {
+  0%, 100% {
+    transform: translateY(0);
+    filter: drop-shadow(0 0 2px rgba(56, 189, 248, 0.4));
+  }
+  50% {
+    transform: translateY(-5px);
+    filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.95));
+  }
+}
+
+.logo-char {
+  display: inline-block !important;
+  background: linear-gradient(135deg, #38bdf8, #818cf8) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  animation: letterWave 2s ease-in-out infinite !important;
+}
+
+.logo-char:nth-child(1)  { animation-delay: 0.00s !important; }
+.logo-char:nth-child(2)  { animation-delay: 0.12s !important; }
+.logo-char:nth-child(4)  { animation-delay: 0.24s !important; }
+.logo-char:nth-child(5)  { animation-delay: 0.36s !important; }
+.logo-char:nth-child(6)  { animation-delay: 0.48s !important; }
+.logo-char:nth-child(7)  { animation-delay: 0.60s !important; }
+.logo-char:nth-child(8)  { animation-delay: 0.72s !important; }
+.logo-char:nth-child(9)  { animation-delay: 0.84s !important; }
+.logo-char:nth-child(11) { animation-delay: 0.96s !important; }
+.logo-char:nth-child(12) { animation-delay: 1.08s !important; }
+.logo-char:nth-child(13) { animation-delay: 1.20s !important; }
+.logo-char:nth-child(14) { animation-delay: 1.32s !important; }
+.logo-char:nth-child(15) { animation-delay: 1.44s !important; }
+.logo-char:nth-child(16) { animation-delay: 1.56s !important; }
+
+.logo-space {
+  display: inline-block !important;
+  width: 8px !important;
+}
+
+/* Sidebar button text strict right-alignment */
+.sidebar .btn-windows {
+  text-align: right !important;
+  justify-content: space-between !important;
+}
+.sidebar .btn-windows > span:first-child {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  text-align: right !important;
+}
+.sidebar .btn-windows .accordion-arrow {
+  margin-right: auto !important;
+}
+
+/* Sidebar Submenu pure white text on dark background */
+.sidebar .nav-accordion-body {
+  background: rgba(10, 15, 30, 0.95) !important;
+  border-radius: 10px !important;
+  border-right: 3px solid #38bdf8 !important;
+  padding: 8px 6px !important;
+  margin: 6px 0 10px !important;
+}
+
+.sidebar .nav-link {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 10px 14px !important;
+  color: #ffffff !important; /* Pure crisp white text */
+  background: rgba(15, 23, 42, 0.85) !important; /* Dark solid contrast */
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  font-size: 13.5px !important;
+  font-weight: 800 !important;
+  text-decoration: none !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+  margin-bottom: 5px !important;
+  text-align: right !important;
+}
+
+.sidebar .nav-link:hover {
+  background: rgba(56, 189, 248, 0.3) !important;
+  color: #ffffff !important;
+  border-color: #38bdf8 !important;
+  transform: translateX(-4px) !important;
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.25) !important;
+}
+
+.sidebar .nav-link.active {
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.7), rgba(37, 99, 235, 0.7)) !important;
+  color: #ffffff !important;
+  border-color: #38bdf8 !important;
+  font-weight: 900 !important;
+  box-shadow: 0 0 15px rgba(56, 189, 248, 0.4) !important;
+}

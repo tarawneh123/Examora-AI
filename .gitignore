@@ -12,3 +12,4 @@ __pycache__/
 exam_data/*.db
 exam_data/backups/
 /tmp/*.db
+skills/

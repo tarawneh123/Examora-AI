@@ -195,7 +195,7 @@
     function copyVoucherText() {
       const text = document.getElementById('voucherContent').innerText;
       navigator.clipboard.writeText(text).then(() => {
-        alert('✓ تم نسخ بيانات بطاقة تسليم الأستاذ بنجاح إلى الحافظة!');
+        if(window.showToast){showToast('✓ تم نسخ بيانات بطاقة تسليم الأستاذ بنجاح', 'success');}else{alert('✓ تم نسخ بيانات بطاقة تسليم الأستاذ بنجاح');}
       }).catch(err => {
         const ta = document.createElement('textarea');
         ta.value = text;
@@ -203,7 +203,7 @@
         ta.select();
         document.execCommand('copy');
         document.body.removeChild(ta);
-        alert('✓ تم نسخ بيانات التسليم بنجاح!');
+        if(window.showToast){showToast('✓ تم نسخ بيانات التسليم بنجاح', 'success');}else{alert('✓ تم نسخ بيانات التسليم بنجاح');}
       });
     }
   </script>

@@ -4,6 +4,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+  ensureModalsExist();
   initMobileNav();
   initModals();
   initExamCreatorCalculations();
@@ -427,7 +428,59 @@ function setupConfirmInterceptors() {
 }
 
 // Global helper for showing beautiful floating toasts
+// Dynamic Auto-Injection for Glassmorphism Custom Modals & Toasts
+function ensureModalsExist() {
+  if (!document.getElementById('customAlertModal')) {
+    const alertModal = document.createElement('div');
+    alertModal.id = 'customAlertModal';
+    alertModal.style.cssText = 'display:none; position:fixed; inset:0; z-index:99999; background:rgba(7,11,20,0.85); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); align-items:center; justify-content:center; padding:16px; direction:rtl; text-align:right; font-family:Cairo,sans-serif;';
+    alertModal.innerHTML = `
+      <div style="background:rgba(15,23,42,0.95); border:1px solid rgba(56,189,248,0.35); box-shadow:0 25px 50px -12px rgba(0,0,0,0.85), 0 0 25px rgba(56,189,248,0.2); border-radius:18px; max-width:480px; width:100%; padding:28px 24px; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg, #38bdf8, #818cf8);"></div>
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+          <span id="customAlertIcon" style="font-size:1.8rem; width:44px; height:44px; border-radius:12px; background:rgba(56,189,248,0.15); border:1px solid rgba(56,189,248,0.3); display:inline-flex; align-items:center; justify-content:center;">ℹ️</span>
+          <h3 id="customAlertTitle" style="font-size:1.25rem; font-weight:900; color:#ffffff; margin:0;">تنبيه من المنظومة</h3>
+        </div>
+        <div id="customAlertMessage" style="font-size:0.98rem; color:#cbd5e1; line-height:1.7; margin-bottom:24px; white-space:pre-line;"></div>
+        <div style="display:flex; justify-content:flex-end;">
+          <button type="button" id="customAlertOkBtn" style="background:linear-gradient(135deg, #0284c7, #2563eb); color:#ffffff; border:none; padding:10px 28px; border-radius:10px; font-weight:800; font-size:0.95rem; cursor:pointer; font-family:inherit; box-shadow:0 4px 15px rgba(37,99,235,0.4); transition:all 0.2s;">حسناً، فهمت</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(alertModal);
+  }
+
+  if (!document.getElementById('customConfirmModal')) {
+    const confirmModal = document.createElement('div');
+    confirmModal.id = 'customConfirmModal';
+    confirmModal.style.cssText = 'display:none; position:fixed; inset:0; z-index:99999; background:rgba(7,11,20,0.85); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); align-items:center; justify-content:center; padding:16px; direction:rtl; text-align:right; font-family:Cairo,sans-serif;';
+    confirmModal.innerHTML = `
+      <div style="background:rgba(15,23,42,0.95); border:1px solid rgba(56,189,248,0.35); box-shadow:0 25px 50px -12px rgba(0,0,0,0.85), 0 0 25px rgba(56,189,248,0.2); border-radius:18px; max-width:480px; width:100%; padding:28px 24px; position:relative; overflow:hidden;">
+        <div style="position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg, #ef4444, #f59e0b);"></div>
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
+          <span id="customConfirmIconBox" style="font-size:1.8rem; width:44px; height:44px; border-radius:12px; background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.3); display:inline-flex; align-items:center; justify-content:center;">❓</span>
+          <h3 id="customConfirmTitle" style="font-size:1.25rem; font-weight:900; color:#ffffff; margin:0;">تأكيد العملية</h3>
+        </div>
+        <div id="customConfirmMessage" style="font-size:0.98rem; color:#cbd5e1; line-height:1.7; margin-bottom:24px; white-space:pre-line;"></div>
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+          <button type="button" id="customConfirmCancelBtn" style="background:rgba(30,41,59,0.8); color:#cbd5e1; border:1px solid rgba(255,255,255,0.15); padding:10px 20px; border-radius:10px; font-weight:700; font-size:0.95rem; cursor:pointer; font-family:inherit;">تراجع</button>
+          <button type="button" id="customConfirmActionBtn" style="background:linear-gradient(135deg, #dc2626, #b91c1c); color:#ffffff; border:none; padding:10px 24px; border-radius:10px; font-weight:800; font-size:0.95rem; cursor:pointer; font-family:inherit; box-shadow:0 4px 15px rgba(220,38,38,0.4);">تأكيد</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(confirmModal);
+  }
+
+  if (!document.getElementById('customToastContainer')) {
+    const toastContainer = document.createElement('div');
+    toastContainer.id = 'customToastContainer';
+    toastContainer.style.cssText = 'position:fixed; bottom:24px; right:24px; z-index:999999; display:flex; flex-direction:column; gap:10px; pointer-events:none; direction:rtl; font-family:Cairo,sans-serif;';
+    document.body.appendChild(toastContainer);
+  }
+}
+
 window.showToast = function(message, type = 'info', duration = 4000) {
+  ensureModalsExist();
   const container = document.getElementById('customToastContainer');
   if (!container) return;
 
@@ -454,12 +507,8 @@ window.showToast = function(message, type = 'info', duration = 4000) {
 
 // Global helper for replacing alert(...)
 window.showAlertModal = function(message, title = 'تنبيه من المنظومة', icon = 'ℹ️', onOk = null) {
+  ensureModalsExist();
   const modal = document.getElementById('customAlertModal');
-  if (!modal) {
-    alert(message);
-    if (typeof onOk === 'function') onOk();
-    return;
-  }
   document.getElementById('customAlertTitle').textContent = title;
   document.getElementById('customAlertMessage').textContent = message;
   document.getElementById('customAlertIcon').textContent = icon;
@@ -476,11 +525,8 @@ window.showAlertModal = function(message, title = 'تنبيه من المنظو�
 
 // Global helper for replacing confirm(...)
 window.showConfirmModal = function(message, onConfirm, title = 'تأكيد العملية', confirmBtnText = 'نعم، تأكيد الحذف', isDanger = true) {
+  ensureModalsExist();
   const modal = document.getElementById('customConfirmModal');
-  if (!modal) {
-    if (confirm(message)) onConfirm();
-    return;
-  }
 
   document.getElementById('customConfirmTitle').textContent = title;
   document.getElementById('customConfirmMessage').textContent = message;

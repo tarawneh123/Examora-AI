@@ -104,6 +104,19 @@
         {% endif %}
         <input type="file" name="ministry_logo" class="form-control" accept="image/png,image/jpeg,image/webp">
       </div>
+
+      <div class="form-group" style="grid-column: 1 / -1;">
+        <label style="font-weight: 800;">شعار المنظومة المخصص (Examora AI Platform Logo):</label>
+        {% if s.platform_logo_path %}
+          <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 12px;">
+            <img src="{{ url_for('asset_file', name=s.platform_logo_path) }}" style="height: 60px; border-radius: 8px; border: 1px solid var(--border); background: #0f172a; padding: 4px;">
+            <button type="button" onclick="document.getElementById('deletePlatformLogo').value='1'; this.parentElement.style.opacity='0.4';" class="btn btn-danger btn-sm">إزالة الشعار</button>
+            <input type="hidden" name="delete_platform_logo" id="deletePlatformLogo" value="0">
+          </div>
+        {% endif %}
+        <input type="file" name="platform_logo" class="form-control" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+        <small style="color: var(--text-muted); font-size: 11.5px;">يمكنك رفع شعار المنظومة المصمم لاحقاً ليظهر في أعلى المنصة وشاشات الدخول والترويسة.</small>
+      </div>
     </div>
 
     <!-- Section 3: Visual Appearance -->
@@ -152,6 +165,23 @@
       <div class="form-group">
         <label>تغيير كلمة مرور الإدارة المحلية (اختياري):</label>
         <input type="password" name="admin_password" class="form-control" placeholder="اتركها فارغة إذا كنت لا تريد التغيير">
+      </div>
+    </div>
+
+    <!-- Section 5: Cloud & Sync Settings -->
+    <h3 style="font-size: 15.5px; font-weight: 800; margin: 24px 0 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; color: var(--primary);">
+      5. إعدادات الربط السحابي والمزامنة (Cloud & Sync)
+    </h3>
+
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label>رابط الخادم السحابي (Online API URL):</label>
+        <input type="text" name="online_api_url" class="form-control" value="{{ s.online_api_url or 'https://examora-ai-nowy.onrender.com' }}" placeholder="https://examora-ai-nowy.onrender.com" dir="ltr">
+      </div>
+
+      <div class="form-group">
+        <label>رمز الأمان السحابي (Teacher Secret):</label>
+        <input type="password" name="teacher_online_secret" class="form-control" value="{{ s.teacher_online_secret or 'Karamhatem@1977' }}" placeholder="رمز الأمان المطابق لـ Render" dir="ltr">
       </div>
     </div>
 

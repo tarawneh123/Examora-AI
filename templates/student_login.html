@@ -54,8 +54,12 @@
 </head>
 <body>
   <div class="student-entry-card">
-    <div style="width: 60px; height: 60px; margin: 0 auto 12px; background: rgba(37, 99, 235, 0.1); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 30px;">
-      📝
+    <div style="margin: 0 auto 14px; text-align: center;">
+      {% if logo_url %}
+        <img src="{{ logo_url }}" alt="شعار المدرسة" style="max-height: 75px; max-width: 140px; object-fit: contain;">
+      {% else %}
+        <img src="{{ url_for('static', filename='assets/school_logo.png') }}" alt="شعار المدرسة" style="max-height: 75px; max-width: 140px; object-fit: contain;">
+      {% endif %}
     </div>
     <div style="font-size: 18px; font-weight: 900; color: #1e3a8a; margin-bottom: 4px; background: rgba(37, 99, 235, 0.08); display: inline-block; padding: 4px 16px; border-radius: 999px;">
       🏫 {{ s.school_name or 'مدارس ذرى المجد' }}
@@ -93,12 +97,7 @@
         <input type="text" name="exam_code" class="form-control exam-pin-input" placeholder="مثال: 702072" maxlength="12" style="padding: 10px 14px; border-radius: 10px;">
       </div>
 
-      <div class="form-group" style="margin-bottom: 18px;">
-        <label style="font-size: 13px; font-weight: 700; display: block; margin-bottom: 5px;">
-          كلمة المرور:
-        </label>
-        <input type="password" name="password" class="form-control" placeholder="أدخل كلمة المرور المسلمة لك..." required style="padding: 11px 14px; border-radius: 10px; font-size: 13.5px;">
-      </div>
+
 
       <button type="submit" class="btn btn-primary" style="width: 100%; padding: 13px; font-size: 14.5px; font-weight: 800; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);">
         <span>🚀 بدء الإجابة على الامتحان فوراً</span>

@@ -58,36 +58,50 @@
               {{ q.question_text }}
             </div>
 
+            {% if q.image_path %}
+              <div style="margin: 12px 0; text-align: center;">
+                <img src="{{ url_for('uploaded_question_image', filename=q.image_path) }}" alt="توضيح السؤال" style="max-width: 100%; max-height: 380px; border-radius: 8px; border: 1px solid #cbd5e1; display: inline-block;">
+              </div>
+            {% endif %}
+
             {% set current_ans = saved_answers.get(q.id, '') %}
 
             <div class="q-options-group">
               <!-- Option A -->
+              {% if q.option_a %}
               <label class="opt-label {{ 'selected' if current_ans in ('أ', 'A', 'a') else '' }}">
                 <input type="radio" name="q_{{ q.id }}" value="{{ 'A' if q.language == 'en' else 'أ' }}" class="opt-input" data-question-id="{{ q.id }}" {{ 'checked' if current_ans in ('أ', 'A', 'a') else '' }}>
                 <span class="opt-marker">{{ 'A' if q.language == 'en' else 'أ' }})</span>
                 <span>{{ q.option_a }}</span>
               </label>
+              {% endif %}
 
               <!-- Option B -->
+              {% if q.option_b %}
               <label class="opt-label {{ 'selected' if current_ans in ('ب', 'B', 'b') else '' }}">
                 <input type="radio" name="q_{{ q.id }}" value="{{ 'B' if q.language == 'en' else 'ب' }}" class="opt-input" data-question-id="{{ q.id }}" {{ 'checked' if current_ans in ('ب', 'B', 'b') else '' }}>
                 <span class="opt-marker">{{ 'B' if q.language == 'en' else 'ب' }})</span>
                 <span>{{ q.option_b }}</span>
               </label>
+              {% endif %}
 
               <!-- Option C -->
+              {% if q.option_c %}
               <label class="opt-label {{ 'selected' if current_ans in ('ج', 'C', 'c') else '' }}">
                 <input type="radio" name="q_{{ q.id }}" value="{{ 'C' if q.language == 'en' else 'ج' }}" class="opt-input" data-question-id="{{ q.id }}" {{ 'checked' if current_ans in ('ج', 'C', 'c') else '' }}>
                 <span class="opt-marker">{{ 'C' if q.language == 'en' else 'ج' }})</span>
                 <span>{{ q.option_c }}</span>
               </label>
+              {% endif %}
 
               <!-- Option D -->
+              {% if q.option_d %}
               <label class="opt-label {{ 'selected' if current_ans in ('د', 'D', 'd') else '' }}">
                 <input type="radio" name="q_{{ q.id }}" value="{{ 'D' if q.language == 'en' else 'د' }}" class="opt-input" data-question-id="{{ q.id }}" {{ 'checked' if current_ans in ('د', 'D', 'd') else '' }}>
                 <span class="opt-marker">{{ 'D' if q.language == 'en' else 'د' }})</span>
                 <span>{{ q.option_d }}</span>
               </label>
+              {% endif %}
             </div>
           </div>
         {% endfor %}
@@ -99,7 +113,7 @@
           الأسئلة المجاب عنها: <strong id="answeredCountBadge">0 / {{ snapshots|length }}</strong>
         </div>
 
-        <button type="submit" class="btn btn-primary btn-lg" data-confirm="تأكيد نهائي: هل أنت متأكد من تسليم ورقة الامتحان؟ لن تتمكن من تعديل إجاباتك بعد التسليم." data-confirm-title="تسليم ورقة الامتحان" data-confirm-btn="نعم، إنهاء وتسليم" data-confirm-danger="false">
+        <button type="submit" class="btn btn-primary btn-lg" id="btnSubmitLocalExam">
           ✓ إنهاء وتسليم ورقة الامتحان
         </button>
       </div>
@@ -113,13 +127,57 @@
     const timerDisplay = document.getElementById('timerDisplay');
     const timerBox = document.getElementById('timerBox');
 
+    const totalQuestions = {{ snapshots|length }};
+    let isAutoSubmittingOnExpired = false;
+
+    // Strict Submission Rule: Prevent manual submit if any question is unanswered
+    document.getElementById('studentExamForm').addEventListener('submit', function(e) {
+      if (isAutoSubmittingOnExpired) return true;
+
+      const answeredQids = new Set();
+      document.querySelectorAll('.opt-input:checked').forEach(inp => {
+        answeredQids.add(inp.getAttribute('data-question-id'));
+      });
+      const answeredCount = answeredQids.size;
+      const remainingCount = totalQuestions - answeredCount;
+
+      if (remainingCount > 0) {
+        e.preventDefault();
+        e.stopPropagation();
+        alert('⚠️ تنبيه: لا يمكن تسليم الامتحان لوجود (' + remainingCount + ') أسئلة لم تقم بالإجابة عليها بعد!\n\nيجب الإجابة عن جميع الأسئلة لتتمكن من تسليم الورقة يدوياً.');
+
+        // Highlight and scroll to first unanswered card
+        const allCards = document.querySelectorAll('.question-card');
+        for (const card of allCards) {
+          if (!card.querySelector('.opt-input:checked')) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            card.style.borderColor = '#ef4444';
+            card.style.boxShadow = '0 0 12px rgba(239, 68, 68, 0.4)';
+            setTimeout(() => {
+              card.style.borderColor = '';
+              card.style.boxShadow = '';
+            }, 2500);
+            break;
+          }
+        }
+        return false;
+      }
+
+      if (!confirm('لقد قمت بالإجابة عن جميع الأسئلة بالكامل (' + totalQuestions + ' من ' + totalQuestions + ').\n\nهل أنت متأكد من رغبتك في تسليم ورقة الامتحان الآن؟ لن تتمكن من تعديل إجاباتك بعد التسليم.')) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+    });
+
     function updateTimer() {
       const now = Math.floor(Date.now() / 1000);
       const remaining = endTime - now;
 
       if (remaining <= 0) {
         timerDisplay.textContent = "00:00";
-        showAlertModal("انتهى وقت الامتحان! سيتم تسليم إجاباتك تلقائياً الآن.", "انتهاء وقت الامتحان", "⏰", function() { document.getElementById("studentExamForm").submit(); }); return;
+        isAutoSubmittingOnExpired = true;
+        alert("⏱️ انتهى وقت الامتحان رسمياً! سيتم تسليم إجاباتك الحالية تلقائياً واحتساب الأسئلة المتبقية غير صحيحة.");
         document.getElementById('studentExamForm').submit();
         return;
       }

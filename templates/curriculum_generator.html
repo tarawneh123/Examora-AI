@@ -181,7 +181,7 @@
     const textarea = document.getElementById('contentTextarea');
 
     if (!fileInput.files || !fileInput.files[0]) {
-      alert('يرجى اختيار ملف أولاً (وورد DOCX أو PDF أو صورة أو نص).');
+      if(window.showAlertModal){showAlertModal('يرجى اختيار ملف أولاً (وورد DOCX أو PDF أو صورة أو نص).', 'تنبيه اختيار الملف', '📂');}else{alert('يرجى اختيار ملف أولاً');}
       return;
     }
 

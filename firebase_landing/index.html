@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Examora AI - منصة الاختبارات والتقييم الذكية</title>
+  <title>Examora AI - منظومة التقييم وإدارة الامتحانات الذكية</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -19,15 +19,14 @@
   <!-- Navbar -->
   <nav class="navbar">
     <a href="index.html" class="brand-logo">
-      <img src="assets/school_logo.png" alt="Examora AI Logo">
+      <img src="assets/school_logo.png" alt="Examora AI Logo" id="navbarBrandLogo">
       <div class="brand-title">
-        <span>Examora AI</span>
+        <span class="brand-title-main">Examora AI</span>
         <span class="brand-subtitle">منظومة التقييم وإدارة الامتحانات الذكية</span>
       </div>
     </a>
     <div class="nav-links">
-      <a href="exam.html" class="nav-btn nav-btn-outline">بوابة الطلاب 🎓</a>
-      <a href="login.html" class="nav-btn nav-btn-solid">دخول المعلمين 🔐</a>
+      <a href="login.html" class="nav-btn nav-btn-primary">دخول المعلمين والإدارة 🔐</a>
     </div>
   </nav>
 
@@ -36,94 +35,106 @@
     <section class="hero">
       <div class="hero-badge">
         <span>✨</span>
-        <span>الجيل الأحدث من منظومات الاختبار والتحليل الذكي</span>
+        <span>الجيل الأحدث من منظومات الاختبار الذكي والتقييم المؤسسي</span>
       </div>
-      <h1>منصة <span>Examora AI</span> للاختبارات الذكية</h1>
-      <p>بيئة متكاملة لإنشاء الاختبارات، المسح الذكي للأسئلة بالذكاء الاصطناعي (OSR)، وإجراء الامتحانات الإلكترونية المباشرة مع الحفظ التلقائي والتحليل الشامل للنتائج.</p>
+      <h1>
+        <span class="hero-brand-name">Examora AI</span>
+      </h1>
+      <div class="hero-tagline">منظومة التقييم وإدارة الامتحانات الذكية</div>
+      <p class="hero-desc">
+        بيئة تعليمية هندسية متقدمة تدعم الامتحانات المدرسية المباشرة في مختبرات الحاسوب دون إنترنت، والامتحانات السحابية المنزلية عبر الإنترنت، مع السحب الذكي للأسئلة والتصحيح الآلي اللحظي والمزامنة الآمنة.
+      </p>
     </section>
 
-    <!-- Student Fast Entry Box -->
-    <div class="fast-entry-box">
-      <div class="entry-header">
-        <div style="font-size: 2.2rem; margin-bottom: 6px;">🚀</div>
-        <h3>دخول سريع لاختبار الطالب</h3>
-        <p>أدخل الرقم الوطني ورمز الامتحان (PIN) لبدء التقديم فوراً</p>
+    <!-- Teacher & Admin Portal Central Showcase -->
+    <div class="portal-showcase-box">
+      <div class="portal-header">
+        <div style="font-size: 2.8rem; margin-bottom: 10px;">🔐</div>
+        <h2>بوابة المعلمين والإدارة المدرسية</h2>
+        <p>الوصول الآمن لإدارة بنوك الأسئلة، جدولة ونشر الامتحانات، مراقبة القاعات لحظياً، وسحب وتوثيق النتائج.</p>
       </div>
-      <form onsubmit="handleFastStudentEntry(event)">
-        <div class="form-group">
-          <label for="homeNationalId">الرقم الوطني / اسم المستخدم للطالب:</label>
-          <input type="text" id="homeNationalId" class="form-control" placeholder="مثال: 2009000001" required>
-        </div>
-        <div class="form-group">
-          <label for="homeExamCode">رمز دخول الامتحان (Exam PIN):</label>
-          <input type="text" id="homeExamCode" class="form-control" placeholder="أدخل الرمز السداسي (مثال: 702072)" required>
-        </div>
-        <button type="submit" class="btn-submit">دخول الامتحان المباشر ⚡</button>
-      </form>
+
+      <div class="portal-actions-grid">
+        <a href="login.html" class="portal-btn portal-btn-primary">
+          <span>دخول لوحة تحكم المعلم</span>
+          <span>←</span>
+        </a>
+        <a href="login.html?role=super" class="portal-btn portal-btn-secondary">
+          <span>بوابة مدير النظام (Admin)</span>
+          <span>⚙️</span>
+        </a>
+      </div>
     </div>
 
-    <!-- Features Overview -->
+    <!-- Features Overview (Interactive Moving Glass Cards) -->
     <div class="features-grid">
       <div class="feature-card">
-        <div class="feature-icon">🛡️</div>
-        <h3>أمان فائق وسيادة بيانات كاملة</h3>
-        <p>قاعدة بيانات محلية خاصة بالأستاذ غير معتمدة على أي خدمات خارجية لحفظ أسرار وخصوصية الامتحانات.</p>
+        <div class="feature-icon-box">🏫</div>
+        <h3>قاعة الامتحانات المدرسية المحلية</h3>
+        <p>إجراء الامتحانات للطلاب داخل مختبر الحاسوب المدرسي عبر الشبكة الداخلية دون الحاجة لشبكة الإنترنت مع استقلالية وسيادة بيانات كاملة.</p>
       </div>
+
       <div class="feature-card">
-        <div class="feature-icon">⚡</div>
-        <h3>محرك OSR الذكي</h3>
-        <p>استخراج الأسئلة من مستندات Word والماسح الضوئي والصور بدقة عالية وفصل الخيارات تلقائياً.</p>
+        <div class="feature-icon-box">🌐</div>
+        <h3>قاعة الامتحانات السحابية أونلاين</h3>
+        <p>تقديم الاختبارات المنزلية والتعويضية عبر الإنترنت من أي جهاز محمول أو حاسوب، مع عداد متزامن وحفظ إجابات تلقائي لحظي.</p>
       </div>
+
       <div class="feature-card">
-        <div class="feature-icon">🔄</div>
-        <h3>نظام الإعادة واستبدال العلامة</h3>
-        <p>إمكانية تصميم امتحانات تعويضية فردية وتحديث العلامة المعتمدة دون فقدان السجل التاريخي.</p>
+        <div class="feature-icon-box">⚡</div>
+        <h3>محرك استخراج الأسئلة الذكي</h3>
+        <p>استيراد فوري للأسئلة من مستندات Word وأوراق الامتحانات المصورة والماسح الضوئي، مع فصل الخيارات وتحديد الإجابات النموذجية بدقة.</p>
       </div>
+
       <div class="feature-card">
-        <div class="feature-icon">👥</div>
-        <h3>منتدى المعلمين الموحد</h3>
-        <p>مساحة مهنية تفاعلية لتبادل الخبرات والخطط التدريسية ونماذج التقييم بين كافة الأساتذة.</p>
+        <div class="feature-icon-box">🛡️</div>
+        <h3>رصد النزاهة ومكافحة الغش</h3>
+        <p>حماية متقدمة ترصد مغادرة شاشة الامتحان وتمنع النسخ واللصق، وتوثق أزمنة الإجابات لضمان نزاهة وموثوقية نتائج التقييم.</p>
       </div>
+
       <div class="feature-card">
-        <div class="feature-icon">📬</div>
-        <h3>منظومة المقترحات والشكاوى</h3>
-        <p>قناة تواصل رسمية ومباشرة لمتابعة الملاحظات وتحديثات النظام مع إشعارات داخلية فورية.</p>
+        <div class="feature-icon-box">🔄</div>
+        <h3>المزامنة السحابية المزدوجة</h3>
+        <p>سحب النتائج السحابية إلى سجلات المدرسة المحلية بنقرة زر واحدة أو تلقائياً عبر الخلفية، مع ضمان عدم تكرار المحاولات إطلاقاً.</p>
       </div>
+
       <div class="feature-card">
-        <div class="feature-icon">🖨️</div>
-        <h3>الترويسة والطباعة الرسمية</h3>
-        <p>نماذج طباعة معتمدة متوافقة مع متطلبات وزارة التربية والتعليم والمديريات لجميع الاختبارات.</p>
+        <div class="feature-icon-box">🖨️</div>
+        <h3>الترويسة والطباعة الوزارية الرسمية</h3>
+        <p>نماذج طباعة معتمدة ومطابقة لمواصفات وزارة التربية والتعليم لكافة أوراق الامتحانات وبطاقات النتائج وكشوفات العلامات على ورق A4.</p>
       </div>
     </div>
   </div>
 
+  <!-- Footer with Designer Credit -->
   <footer>
     <div class="container">
-      <p>منظومة Examora AI للتقييم والاختبارات الذكية © 2026 - جميع الحقوق محفوظة</p>
+      <div class="footer-bottom">
+        <p>© 2026 جميع الحقوق محفوظة منظومة Examora AI للتقييم والاختبارات الذكية © 2026 - جميع الحقوق محفوظة</p>
+        <p class="designer-credit">
+          <span class="designer-label">تصميم وتطوير:</span>
+          <a href="https://htst-d.web.app/" target="_blank" rel="noopener noreferrer" class="logo-text">
+            <span class="logo-char">H</span>
+            <span class="logo-char">T</span>
+            <span class="logo-space"></span>
+            <span class="logo-char">S</span>
+            <span class="logo-char">T</span>
+            <span class="logo-char">U</span>
+            <span class="logo-char">D</span>
+            <span class="logo-char">I</span>
+            <span class="logo-char">O</span>
+            <span class="logo-space"></span>
+            <span class="logo-char">D</span>
+            <span class="logo-char">E</span>
+            <span class="logo-char">S</span>
+            <span class="logo-char">I</span>
+            <span class="logo-char">G</span>
+            <span class="logo-char">N</span>
+          </a>
+        </p>
+      </div>
     </div>
   </footer>
 
-  <script>
-    function handleFastStudentEntry(e) {
-      e.preventDefault();
-      const nid = document.getElementById('homeNationalId').value.trim();
-      const code = document.getElementById('homeExamCode').value.trim();
-      if (nid && code) {
-        localStorage.setItem('examora_student_id', nid);
-        window.location.href = `exam.html?code=${encodeURIComponent(code)}`;
-      }
-    }
-
-    // Support hash routing e.g. #/e/702072
-    window.addEventListener('DOMContentLoaded', () => {
-      const hash = window.location.hash;
-      if (hash && hash.startsWith('#/e/')) {
-        const code = hash.replace('#/e/', '').trim();
-        if (code) {
-          window.location.href = `exam.html?code=${encodeURIComponent(code)}`;
-        }
-      }
-    });
-  </script>
 </body>
 </html>

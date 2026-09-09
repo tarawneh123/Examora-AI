@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: examora-ai-cloud-backend
+    runtime: docker
+    dockerfilePath: ./online_backend/Dockerfile
+    dockerContext: ./online_backend
+    plan: free
+    region: frankfurt
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: ENVIRONMENT
+        value: production
+      - key: TEACHER_ONLINE_SECRET
+        value: Karamhatem@1977
+      - key: ALLOWED_ORIGIN
+        value: https://yt-c-c.web.app

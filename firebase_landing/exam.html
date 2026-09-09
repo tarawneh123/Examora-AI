@@ -10,13 +10,13 @@
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/exam.css">
 </head>
-<body>
+<body oncontextmenu="return false;">
 
   <!-- Entry Dialog (Shown if student is not yet authenticated for exam) -->
   <div id="loginOverlay" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.85); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
     <div class="fast-entry-box" style="width: 90%; max-width: 480px; margin: 0;">
       <div class="entry-header">
-        <div style="font-size: 2.5rem; margin-bottom: 8px;">🎓</div>
+        <div style="margin-bottom: 12px; text-align: center;"><img src="assets/school_logo.png" alt="شعار المدرسة" style="max-height: 75px; max-width: 140px; object-fit: contain; display: inline-block;"></div>
         <h3>دخول قاعة الامتحان الذكية</h3>
         <p>يرجى إدخال الرقم الوطني ورمز دخول الامتحان للمتابعة</p>
       </div>
@@ -29,6 +29,10 @@
         <div class="form-group">
           <label for="stdExamCode">رمز دخول الامتحان (Exam PIN):</label>
           <input type="text" id="stdExamCode" class="form-control" placeholder="رمز الامتحان السداسي" required>
+          <div id="examCodeLockBadge" style="display: none; font-size: 11.5px; color: #0284c7; font-weight: 800; margin-top: 5px; align-items: center; gap: 4px;">
+            <span>🔒</span>
+            <span>تم قفل رمز الامتحان تلقائياً من الرابط لمنع مسحه بالخطأ.</span>
+          </div>
         </div>
         <button type="submit" class="btn-submit" id="btnEnterExam">بدء الامتحان الآن 🚀</button>
       </form>
@@ -41,14 +45,121 @@
       <h2 class="exam-title" id="displayExamTitle">امتحان مبحث...</h2>
       <div class="student-badge" id="displayStudentName">الطالب: ...</div>
     </div>
-    <div class="timer-container" id="timerBox">
-      <span>⏱️</span>
-      <span id="timerDisplay">--:--</span>
+    
+    <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+      <!-- Sync Pulse Indicator -->
+      <div class="sync-pulse-box" id="syncPulseBox" title="حالة الاتصال والمزامنة اللحظية">
+        <span class="pulse-dot" id="syncPulseDot"></span>
+        <span id="syncPulseText">متصل سحابياً</span>
+      </div>
+
+      <!-- Font Resizer -->
+      <div class="font-resizer-box" title="التحكم بحجم الخط">
+        <button type="button" onclick="adjustExamFontSize(-1)" title="تصغير الخط">A-</button>
+        <button type="button" onclick="adjustExamFontSize(1)" title="تكبير الخط">A+</button>
+      </div>
+
+      <!-- Theme Switcher -->
+      <button type="button" class="theme-toggle-btn" onclick="toggleExamTheme()" id="btnThemeToggle" title="التبديل بين النمط المظلم والفاتح">
+        🌓 النمط
+      </button>
+
+      <!-- Timer -->
+      <div class="timer-container" id="timerBox">
+        <span>⏱️</span>
+        <span id="timerDisplay">--:--</span>
+      </div>
     </div>
   </header>
 
   <!-- Main Exam Content -->
   <main class="exam-content" id="examMain" style="display: none;">
+    
+    <!-- Integrity & Offline Alert Banners -->
+    <div id="offlineAlertBanner" class="exam-alert-banner exam-alert-danger" style="display: none;">
+      <span>⚠️</span>
+      <span>أنت غير متصل بالإنترنت حالياً. إجاباتك محفوظة بأمان داخل جهازك وستتم مزامنتها تلقائياً فور عودة الاتصال.</span>
+    </div>
+
+    <div id="integrityWarningBanner" class="exam-alert-banner exam-alert-warning" style="display: none;">
+      <span>⚠️</span>
+      <span>تنبيه: يرجى البقاء داخل شاشة الامتحان وتجنب فتح نوافذ أخرى. (عدد مرات مغادرة التبويب: <span id="tabSwitchCountDisplay">0</span>)</span>
+    </div>
+
+    <!-- Official Exam Header: Jordan Ministry of Education & School Standard -->
+    <div class="official-exam-header-box" style="border: 2px solid #000; padding: 12px 16px; margin-bottom: 20px; direction: rtl; text-align: right; background: #ffffff; color: #000000; border-radius: 8px; box-shadow: var(--shadow);">
+      <table style="width: 100%; border-collapse: collapse; table-layout: fixed; margin: 0; padding: 0;">
+        <tbody>
+          <tr>
+            <!-- Right Column: Directorate & Student Info -->
+            <td style="width: 30%; vertical-align: top; text-align: center; padding: 2px 4px; line-height: 1.4; font-size: 10.5pt; font-weight: 700;">
+              <img src="assets/ministry_logo.png" alt="شعار الوزارة" style="max-height: 55px; max-width: 60px; object-fit: contain; margin-bottom: 4px; display: block; margin-left: auto; margin-right: auto;">
+              <div style="font-weight: 800; font-size: 11pt;">وزارة التربية والتعليم</div>
+              <div style="font-size: 9.5pt;" id="hdrDirectorate">مديرية التربية والتعليم / لواء المزار الجنوبي</div>
+              <div style="font-size: 10pt; margin-top: 3px;">
+                الصف : <strong id="hdrGrade">الثانوية العامة</strong>
+              </div>
+              <div style="font-size: 9.5pt; margin-top: 3px; color: #1e3a8a;">
+                اسم الطالب : <strong id="hdrStudentName">...</strong>
+              </div>
+            </td>
+
+            <!-- Center Column: Kingdom, School, Exam Title, Semester -->
+            <td style="width: 40%; vertical-align: top; text-align: center; padding: 2px 4px; line-height: 1.4;">
+              <div style="font-size: 13pt; font-weight: 900; margin: 0 0 1px;">المملكة الأردنية الهاشمية</div>
+              <div style="font-size: 11pt; font-weight: 800; margin: 0 0 2px;">وزارة التربية والتعليم</div>
+              <div style="font-size: 11.5pt; font-weight: 800; margin: 0 0 3px; color: #1e3a8a;" id="hdrSchoolName">
+                مدارس ذرى المجد
+              </div>
+              <div style="font-size: 11.5pt; font-weight: 900; margin-top: 4px; padding: 2px 8px; border-bottom: 1.5px solid #000; display: inline-block;" id="hdrExamTypeSubject">
+                الامتحان الإلكتروني المعتمد
+              </div>
+              <div style="font-size: 9.5pt; font-weight: 700; margin-top: 4px;" id="hdrSemesterYear">
+                الفصل الدراسي الأول 2025 - 2026م
+              </div>
+            </td>
+
+            <!-- Left Column: School Logo, Date, Total Marks, Duration -->
+            <td style="width: 30%; vertical-align: top; text-align: center; padding: 2px 4px; line-height: 1.4; font-size: 10.5pt; font-weight: 700;">
+              <img src="assets/school_logo.png" alt="شعار المدرسة" style="max-height: 55px; max-width: 60px; object-fit: contain; margin-bottom: 4px; display: block; margin-left: auto; margin-right: auto;">
+              <div style="font-size: 9.5pt; margin-top: 2px;">
+                التاريخ: <strong id="hdrDate">...</strong>
+              </div>
+              <div style="font-size: 9.5pt; margin-top: 2px;">
+                العلامة الكلية : ( <strong id="hdrTotalMarks">--</strong> )
+              </div>
+              <div style="font-size: 9.5pt; margin-top: 2px;">
+                المدة : ( <strong id="hdrDuration">-- دقيقة</strong> )
+              </div>
+              <div style="font-size: 9pt; color: #334155; margin-top: 2px;">
+                رمز الامتحان: <code id="hdrExamCode" style="font-weight: 900; color: #000; background: #e2e8f0; padding: 1px 6px; border-radius: 4px;">--</code>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Full-Width Bottom Instruction / Note Banner -->
+          <tr>
+            <td colspan="3" style="border-top: 1.5px solid #000; border-bottom: 3.5px double #000; padding-top: 6px; padding-bottom: 6px; text-align: center; font-size: 11pt; font-weight: 800; line-height: 1.4; background: #ffffff;" id="hdrNote">
+              ملحوظة :- أجب وفقك الله عن جميع الفقرات الآتية ؛ والاجابة معتمدة إلكترونياً
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Question Navigator & Progress Card -->
+    <div id="navProgressContainer" class="nav-progress-container">
+      <div class="progress-info-row">
+        <span>خريطة الأسئلة والتنقل السريع:</span>
+        <span id="answeredCounterBadge" class="answered-counter-badge">0 من 0 أسئلة مكتملة (0%)</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div id="progressBarFill" class="progress-bar-fill" style="width: 0%;"></div>
+      </div>
+      <div id="questionNavGrid" class="question-nav-grid"></div>
+    </div>
+
+    <!-- Questions Container -->
     <div id="questionsContainer"></div>
   </main>
 
@@ -64,22 +175,82 @@
   </footer>
 
   <!-- Result Screen (After Submission) -->
-  <div id="resultScreen" style="display: none; max-width: 650px; margin: 60px auto; padding: 36px; background: #fff; border-radius: 16px; box-shadow: var(--shadow-lg); text-align: center; border: 2px solid var(--border);">
-    <div style="font-size: 3.5rem; margin-bottom: 12px;">🏆</div>
-    <h2 style="font-size: 1.8rem; font-weight: 900; color: var(--dark); margin-bottom: 8px;" id="resStudentTitle">أحسنت صنعاً!</h2>
-    <p style="color: var(--text-muted); margin-bottom: 24px;">تم تسليم إجاباتك بنجاح واعتمادها في السجل الرسمي للمدرسة.</p>
+  <div id="resultScreen" style="display: none; max-width: 680px; margin: 50px auto 100px; padding: 36px 30px; background: #ffffff; border-radius: 20px; box-shadow: var(--shadow-lg); text-align: center; border: 2px solid var(--border);">
+    <div style="font-size: 3.5rem; margin-bottom: 10px;">✅</div>
+    <h2 style="font-size: 1.85rem; font-weight: 900; color: var(--dark); margin-bottom: 8px;" id="resStudentTitle">تم استلام وتوثيق ورقة الامتحان بنجاح</h2>
+    <p style="color: var(--text-muted); font-size: 1rem; margin-bottom: 24px;">تم توثيق إجاباتك رسمياً في السيرفر السحابي وجارٍ تدقيق الدرجات وسحب النتائج.</p>
     
-    <div style="background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
-      <div style="font-size: 0.95rem; color: var(--text-muted); font-weight: 700;">العلامة المحصلة</div>
-      <div style="font-size: 3rem; font-weight: 900; color: var(--primary); margin: 6px 0;" id="resScore">-- / --</div>
-      <div style="font-size: 1.15rem; font-weight: 800;" id="resTier">ممتاز</div>
+    <!-- 3-Minute Result Countdown Box -->
+    <div id="resultWaitBox" style="background: #f8fafc; border: 2px dashed #38bdf8; border-radius: 16px; padding: 28px 20px; margin-bottom: 24px; text-align: center;">
+      <div style="font-size: 2.2rem; margin-bottom: 6px;">⏱️</div>
+      <div style="font-size: 1.15rem; font-weight: 800; color: #0f172a;">إعلان النتيجة النهائية والتقدير العام بعد:</div>
+      <div id="resultWaitTimer" style="font-family: monospace; font-size: 3.2rem; font-weight: 900; color: #0284c7; margin: 10px 0; letter-spacing: 4px;">03:00</div>
+      <p style="font-size: 0.92rem; color: #64748b; max-width: 480px; margin: 0 auto; line-height: 1.6;">
+        ⏳ يرجى الانتظار، ستظهر علامتك وبطاقة التقدير وشهادة التميز تلقائياً فور اكتمال التدقيق واعتماد العلامات.
+      </p>
     </div>
 
-    <div id="resFeedbackBox" style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; border-radius: 10px; padding: 16px; font-size: 1.05rem; font-weight: 700; margin-bottom: 28px;">
-      رسالة تشجيعية من معلم المادة
+    <!-- Final Score & Certificate Container (Revealed after 3 minutes) -->
+    <div id="scoreRevealBox" style="display: none;">
+      <div style="background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+        <div style="font-size: 0.95rem; color: var(--text-muted); font-weight: 700;">العلامة المحصلة النهائية</div>
+        <div style="font-size: 3.2rem; font-weight: 900; color: var(--primary); margin: 6px 0;" id="resScore">-- / --</div>
+        <div style="font-size: 1.25rem; font-weight: 800; color: #16a34a;" id="resTier">ممتاز</div>
+      </div>
+
+      <div id="resFeedbackBox" style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; border-radius: 10px; padding: 16px; font-size: 1.05rem; font-weight: 700; margin-bottom: 28px;">
+        رسالة تشجيعية من معلم المادة
+      </div>
+
+      <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+        <button id="btnCertModal" onclick="openDigitalCertificate()" class="nav-btn" style="display: none; background: linear-gradient(135deg, #d97706, #b45309); color: #fff; padding: 12px 24px; border: 1px solid #f59e0b; font-weight: 800; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.35);">
+          🎓 إصدار وطباعة شهادة التميز الرقمية
+        </button>
+        <button onclick="window.print()" class="nav-btn nav-btn-solid" style="background: #2563eb; padding: 12px 26px;">
+          🖨️ طباعة بطاقة النتيجة الرسمية
+        </button>
+        <a href="index.html" class="nav-btn nav-btn-outline" style="display: inline-block; padding: 12px 26px;">
+          العودة للصفحة الرئيسية
+        </a>
+      </div>
     </div>
 
-    <a href="index.html" class="nav-btn nav-btn-outline" style="display: inline-block; padding: 12px 30px;">العودة للصفحة الرئيسية</a>
+  <!-- Digital Certificate Modal -->
+  <div id="certificateModal">
+    <div class="certificate-frame">
+      <div style="position: absolute; top: 14px; left: 14px;">
+        <button type="button" onclick="closeDigitalCertificate()" class="btn btn-sm" style="background: #f1f5f9; color: #000; border: 1px solid #cbd5e1; font-weight: 800; border-radius: 6px; padding: 4px 10px; cursor: pointer;">✕ إغلاق</button>
+      </div>
+      <div class="cert-header">
+        <img src="assets/jordan_emblem.png" alt="شعار المملكة" style="height: 65px; margin-bottom: 8px;">
+        <div style="font-size: 13pt; font-weight: 800; color: #64748b;">المملكة الأردنية الهاشمية - وزارة التربية والتعليم</div>
+        <div style="font-size: 14pt; font-weight: 900; color: #1e3a8a;" id="certSchoolName">مدارس ذرى المجد</div>
+        <div class="cert-title">شهادة تميز وتقدير رسميـة 🏆</div>
+      </div>
+      <div class="cert-body">
+        تَشهد إدارة المدرسة ومُعلم المادة بأن الطالب المتميز / الطالبة المتميزة:
+        <div class="cert-student-name" id="certStudentName">...</div>
+        قد اجتاز امتحان <strong id="certExamTitle">...</strong> بنجاح وتفوق باهر،<br>
+        وحصل على علامة مستحقة قدرها: ( <strong style="color: #b45309; font-size: 1.4rem;" id="certScore">-- / --</strong> ) 
+        بمعدل مئوي ( <strong style="color: #16a34a; font-size: 1.3rem;" id="certPercentage">--%</strong> ) وبتقدير عام: <strong id="certTier">ممتاز</strong>.
+      </div>
+      <div class="cert-stamp-box">
+        <div style="text-align: right;">
+          <div>تاريخ الإصدار والاعتماد: <strong id="certDate">...</strong></div>
+          <div style="font-size: 10.5pt; color: #64748b;">رمز التوثيق الإلكتروني: <code id="certTokenCode">...</code></div>
+        </div>
+        <div style="text-align: center;">
+          <div style="font-size: 11pt; font-weight: 800; color: #1e3a8a;">ختم واعتماد المنظومة الذكية</div>
+          <div style="display: inline-block; padding: 4px 12px; border: 2px solid #b45309; color: #b45309; font-weight: 900; border-radius: 6px; margin-top: 4px;">معتمد رسمياً ✓</div>
+        </div>
+      </div>
+      <div style="margin-top: 24px;">
+        <button type="button" onclick="window.print()" class="nav-btn nav-btn-solid" style="background: #b45309; color: #fff; padding: 10px 24px; font-weight: 800;">🖨️ طباعة الشهادة / حفظ PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="confettiCanvas"></canvas>
   </div>
 
   <script src="js/config.js"></script>

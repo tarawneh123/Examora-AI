@@ -204,6 +204,12 @@
             {% endif %}
           </div>
 
+          {% if q.image_path %}
+            <div style="text-align: center; margin: 10px 0;">
+              <img src="{{ url_for('uploaded_question_image', filename=q.image_path) }}" alt="رسم توضيحي" style="max-height: 220px; max-width: 90%; object-fit: contain; border: 1px solid #cbd5e1; border-radius: 4px;">
+            </div>
+          {% endif %}
+
           {% if q.option_a or q.option_b or q.option_c or q.option_d %}
             <div class="options-grid-2">
               {% if q.option_a %}

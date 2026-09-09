@@ -214,7 +214,7 @@ function updateQuestionDiff(qId, diff) {
   .then(res => res.json())
   .then(data => {
     if (!data.ok) {
-      alert('تعذر تحديث مستوى الصعوبة: ' + (data.error || ''));
+      if(window.showAlertModal){showAlertModal('تعذر تحديث مستوى الصعوبة: ' + (data.error || ''), 'خطأ في التحديث', '⚠️');}else{alert(data.error);}
     }
   })
   .catch(err => console.error(err));

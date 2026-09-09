@@ -157,6 +157,9 @@ def teacher_publish():
     # Cryptographically secure unguessable publish token
     publish_token = secrets.token_urlsafe(24)
 
+    scheduled_start_at = str(data.get('scheduled_start_at') or '').strip()
+    scheduled_end_at = str(data.get('scheduled_end_at') or '').strip()
+
     # Atomic insertion: Exam in online_exams, private answer key in online_answer_keys
     db.insert('online_exams', {
         'publish_token': publish_token,
@@ -167,6 +170,8 @@ def teacher_publish():
         'duration': duration,
         'total_marks': total_marks,
         'status': 'ACTIVE',
+        'scheduled_start_at': scheduled_start_at if scheduled_start_at else None,
+        'scheduled_end_at': scheduled_end_at if scheduled_end_at else None,
         'questions_json': json.dumps(sanitized_questions, ensure_ascii=False),
         'allowed_students_json': json.dumps(allowed_students, ensure_ascii=False),
         'created_at': now_str
@@ -262,10 +267,10 @@ def teacher_mark_synced(token):
     attempt_ids = data.get('attempt_ids') or []
     if not attempt_ids:
         # Mark all submitted for this exam
-        db.x("UPDATE online_attempts SET is_synced=1 WHERE publish_token=? AND status='SUBMITTED'", (token,))
+        db.x("UPDATE online_attempts SET is_synced=TRUE WHERE publish_token=? AND status='SUBMITTED'", (token,))
     else:
         for aid in attempt_ids:
-            db.x("UPDATE online_attempts SET is_synced=1 WHERE id=? AND publish_token=?", (aid, token))
+            db.x("UPDATE online_attempts SET is_synced=TRUE WHERE id=? AND publish_token=?", (aid, token))
 
     res = jsonify({'ok': True, 'message': 'تم تحديث حالة المزامنة بنجاح.'})
     return apply_cors_headers(res, req_origin)
@@ -301,7 +306,7 @@ def teacher_purge(token):
         return apply_cors_headers(res, req_origin)
 
     # GATEKEEPER 2: Reject purge if any SUBMITTED attempts have NOT been synced
-    unsynced_count = db.q("SELECT COUNT(*) as n FROM online_attempts WHERE publish_token=? AND status='SUBMITTED' AND is_synced=0", (token,), one=True)['n']
+    unsynced_count = db.q("SELECT COUNT(*) as n FROM online_attempts WHERE publish_token=? AND status='SUBMITTED' AND is_synced=FALSE", (token,), one=True)['n']
     if unsynced_count > 0:
         res = jsonify({
             'ok': False,
@@ -319,6 +324,62 @@ def teacher_purge(token):
     db.x("DELETE FROM online_exams WHERE publish_token=?", (token,))
 
     res = jsonify({'ok': True, 'message': 'تم حذف الامتحان المنشور وبياناته السحابية المؤقتة نهائياً بعد التحقق من اكتمال المزامنة.'})
+    return apply_cors_headers(res, req_origin)
+
+@app.get('/api/teacher/exams/<token>/live-status')
+def teacher_live_status(token):
+    req_origin = request.headers.get('Origin', '')
+    if not verify_teacher_auth(request):
+        res = jsonify({'ok': False, 'error': 'غير مصرح.'})
+        res.status_code = 401
+        return apply_cors_headers(res, req_origin)
+
+    exam = db.q("SELECT * FROM online_exams WHERE publish_token=?", (token,), one=True)
+    if not exam:
+        res = jsonify({'ok': False, 'error': 'الامتحان غير موجود.'})
+        res.status_code = 404
+        return apply_cors_headers(res, req_origin)
+
+    allowed_students = json.loads(exam['allowed_students_json'] or '[]')
+
+    # Active attempts
+    active_rows = db.q("SELECT id, student_national_id, student_name, started_at, server_deadline FROM online_attempts WHERE publish_token=? AND status='ACTIVE'", (token,))
+    active_students = []
+    for r in active_rows:
+        ans_count = db.q("SELECT COUNT(*) as c FROM online_answers WHERE attempt_id=?", (r['id'],), one=True)
+        active_students.append({
+            'attempt_id': r['id'],
+            'student_national_id': r['student_national_id'],
+            'student_name': r['student_name'],
+            'started_at': str(r['started_at']),
+            'answers_count': ans_count['c'] if ans_count else 0
+        })
+
+    # Submitted attempts
+    submitted_rows = db.q("SELECT id, student_national_id, student_name, score, total, percentage, tier, finished_at FROM online_attempts WHERE publish_token=? AND status='SUBMITTED'", (token,))
+    submitted_students = [{
+        'attempt_id': r['id'],
+        'student_national_id': r['student_national_id'],
+        'student_name': r['student_name'],
+        'score': float(r['score']),
+        'total': float(r['total']),
+        'percentage': float(r['percentage']),
+        'tier': r['tier'],
+        'finished_at': str(r['finished_at'])
+    } for r in submitted_rows]
+
+    res = jsonify({
+        'ok': True,
+        'publish_token': token,
+        'exam_title': exam['title'],
+        'summary': {
+            'total_allowed': len(allowed_students),
+            'active_count': len(active_students),
+            'submitted_count': len(submitted_students)
+        },
+        'active_students': active_students,
+        'submitted_students': submitted_students
+    })
     return apply_cors_headers(res, req_origin)
 
 # ==============================================================================
@@ -369,6 +430,47 @@ def student_start():
 
     now = datetime.now()
     now_str = now.strftime('%Y-%m-%d %H:%M:%S')
+
+    # Check Scheduled Start Time
+    scheduled_start = dict(exam).get('scheduled_start_at')
+    if scheduled_start and str(scheduled_start).strip():
+        try:
+            start_clean = str(scheduled_start).replace('T', ' ')[:19]
+            if len(start_clean) == 16:
+                start_clean += ':00'
+            start_dt = datetime.strptime(start_clean, '%Y-%m-%d %H:%M:%S')
+            if now < start_dt:
+                time_display = start_dt.strftime('%Y-%m-%d %I:%M %p').replace('AM', 'صباحاً').replace('PM', 'مساءً')
+                remaining_wait = int((start_dt - now).total_seconds())
+                res = jsonify({
+                    'ok': False,
+                    'error': f'عذراً، لم يبدأ وقت الامتحان بعد. موعد البدء المحدد: {time_display}',
+                    'not_started': True,
+                    'scheduled_start_at': str(scheduled_start),
+                    'remaining_wait_seconds': remaining_wait
+                })
+                res.status_code = 403
+                return apply_cors_headers(res, req_origin)
+        except Exception as e_st:
+            print('[SCHEDULED START CHECK ERROR]:', e_st)
+
+    # Check Scheduled End Time
+    scheduled_end = dict(exam).get('scheduled_end_at')
+    if scheduled_end and str(scheduled_end).strip():
+        try:
+            end_clean = str(scheduled_end).replace('T', ' ')[:19]
+            if len(end_clean) == 16:
+                end_clean += ':00'
+            end_dt = datetime.strptime(end_clean, '%Y-%m-%d %H:%M:%S')
+            if now > end_dt:
+                res = jsonify({
+                    'ok': False,
+                    'error': 'عذراً، انتهت الفترة المحددة لتقديم هذا الامتحان وتم إغلاقه رسمياً.'
+                })
+                res.status_code = 403
+                return apply_cors_headers(res, req_origin)
+        except Exception as e_end:
+            print('[SCHEDULED END CHECK ERROR]:', e_end)
 
     # Check for submitted attempt
     prev_sub = db.q("""
@@ -587,14 +689,15 @@ def student_submit():
     # Save any final answers sent in submit payload
     for qid_str, ans_val in submitted_answers.items():
         ans_clean = str(ans_val).strip()
+        qid_int = int(qid_str) if str(qid_str).isdigit() else qid_str
         if ans_clean in ('أ', 'ب', 'ج', 'د', 'A', 'B', 'C', 'D'):
-            existing = db.q("SELECT id FROM online_answers WHERE attempt_id=? AND question_id=?", (attempt_id, qid_str), one=True)
+            existing = db.q("SELECT id FROM online_answers WHERE attempt_id=? AND question_id=?", (attempt_id, qid_int), one=True)
             if existing:
                 db.x("UPDATE online_answers SET answer=?, answered_at=? WHERE id=?", (ans_clean, now_str, existing['id']))
             else:
                 db.insert('online_answers', {
                     'attempt_id': attempt_id,
-                    'question_id': qid_str,
+                    'question_id': qid_int,
                     'answer': ans_clean,
                     'answered_at': now_str
                 })
@@ -607,8 +710,18 @@ def student_submit():
     all_ans_rows = db.q("SELECT question_id, answer FROM online_answers WHERE attempt_id=?", (attempt_id,))
     answers_map = {str(r['question_id']): r['answer'] for r in all_ans_rows}
 
-    # Strict Server-Side Evaluation (Any client-sent score or marks are completely ignored)
-    evaluation = evaluate_exam_submission(answers_map, answer_key)
+    # Robust Server-Side Evaluation (Never crashes on malformed keys)
+    try:
+        evaluation = evaluate_exam_submission(answers_map, answer_key)
+    except Exception as eval_err:
+        print(f"[SUBMISSION EVALUATION ERROR]: {eval_err}")
+        evaluation = {
+            'score': 0.0,
+            'total': float(attempt.get('total') or 0.0),
+            'percentage': 0.0,
+            'tier': 'مكتمل',
+            'feedback_message': 'تم استلام وتوثيق إجاباتك بنجاح.'
+        }
 
     # Lock attempt as SUBMITTED
     db.x("""
