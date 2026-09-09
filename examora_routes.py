@@ -360,7 +360,7 @@ def register_examora_routes(app, db, srv):
     # -------------------------------------------------------------
     # 5. TEACHERS' COMMUNITY FORUM
     # -------------------------------------------------------------
-    @app.route('/forum', methods=['GET'])
+    @app.route('/forum', methods=['GET'], endpoint='forum_home')
     def forum_home():
         if not session.get('admin_logged_in'):
             flash('يرجى تسجيل الدخول للوصول إلى منتدى الأساتذة.', 'error')
@@ -391,7 +391,7 @@ def register_examora_routes(app, db, srv):
                                selected_category=category,
                                search_query=q)
 
-    @app.route('/forum/topic/create', methods=['POST'])
+    @app.route('/forum/topic/create', methods=['POST'], endpoint='forum_create_topic')
     def forum_create_topic():
         if not session.get('admin_logged_in'):
             return redirect(url_for('login'))
@@ -412,7 +412,7 @@ def register_examora_routes(app, db, srv):
         flash('تم نشر الموضوع بنجاح في منتدى الأساتذة.', 'success')
         return redirect(url_for('forum_topic_view', id=tid))
 
-    @app.route('/forum/topic/<int:id>', methods=['GET'])
+    @app.route('/forum/topic/<int:id>', methods=['GET'], endpoint='forum_topic_view')
     def forum_topic_view(id):
         if not session.get('admin_logged_in'):
             return redirect(url_for('login'))
@@ -433,7 +433,7 @@ def register_examora_routes(app, db, srv):
                                topic=topic,
                                replies=replies)
 
-    @app.route('/forum/topic/<int:id>/reply', methods=['POST'])
+    @app.route('/forum/topic/<int:id>/reply', methods=['POST'], endpoint='forum_add_reply')
     def forum_add_reply(id):
         if not session.get('admin_logged_in'):
             return redirect(url_for('login'))
@@ -451,7 +451,7 @@ def register_examora_routes(app, db, srv):
         flash('تمت إضافة ردك بنجاح.', 'success')
         return redirect(url_for('forum_topic_view', id=id))
 
-    @app.route('/forum/topic/<int:id>/like', methods=['POST'])
+    @app.route('/forum/topic/<int:id>/like', methods=['POST'], endpoint='forum_toggle_like')
     def forum_toggle_like(id):
         if not session.get('admin_logged_in'):
             return redirect(url_for('login'))
@@ -460,7 +460,7 @@ def register_examora_routes(app, db, srv):
         srv.toggle_forum_like(id, user_email)
         return redirect(url_for('forum_topic_view', id=id))
 
-    @app.route('/forum/topic/<int:id>/delete', methods=['POST'])
+    @app.route('/forum/topic/<int:id>/delete', methods=['POST'], endpoint='forum_delete_topic')
     def forum_delete_topic(id):
         if not session.get('admin_logged_in'):
             return redirect(url_for('login'))
@@ -479,7 +479,7 @@ def register_examora_routes(app, db, srv):
     # -------------------------------------------------------------
     # 6. SUGGESTIONS & COMPLAINTS
     # -------------------------------------------------------------
-    @app.route('/complaints', methods=['GET'])
+    @app.route('/complaints', methods=['GET'], endpoint='complaints_home')
     def complaints_home():
         if not session.get('admin_logged_in'):
             flash('يرجى تسجيل الدخول للوصول إلى هذا القسم.', 'error')
@@ -493,7 +493,7 @@ def register_examora_routes(app, db, srv):
                                active='complaints',
                                tickets=tickets)
 
-    @app.route('/complaints/submit', methods=['POST'])
+    @app.route('/complaints/submit', methods=['POST'], endpoint='complaints_submit')
     def complaints_submit():
         if not session.get('admin_logged_in'):
             return redirect(url_for('login'))
@@ -515,7 +515,7 @@ def register_examora_routes(app, db, srv):
         flash(f'تم إرسال طلبك بنجاح بالرقم المرجعي: {ticket_num}. سيتم إشعارك فور رد الإدارة.', 'success')
         return redirect(url_for('complaints_home'))
 
-    @app.route('/admin/complaints', methods=['GET'])
+    @app.route('/admin/complaints', methods=['GET'], endpoint='admin_complaints_view')
     def admin_complaints_view():
         if not session.get('admin_logged_in') or not session.get('is_super_admin'):
             flash('هذه الشاشة مخصصة لإدارة النظام فقط.', 'error')
@@ -540,7 +540,7 @@ def register_examora_routes(app, db, srv):
                                total_count=total_cnt,
                                selected_status=status_filter)
 
-    @app.route('/admin/complaints/<int:id>/respond', methods=['POST'])
+    @app.route('/admin/complaints/<int:id>/respond', methods=['POST'], endpoint='admin_respond_ticket')
     def admin_respond_ticket(id):
         if not session.get('admin_logged_in') or not session.get('is_super_admin'):
             return redirect(url_for('dashboard'))
