@@ -262,10 +262,10 @@ def teacher_mark_synced(token):
     attempt_ids = data.get('attempt_ids') or []
     if not attempt_ids:
         # Mark all submitted for this exam
-        db.x("UPDATE online_attempts SET is_synced=1 WHERE publish_token=? AND status='SUBMITTED'", (token,))
+        db.x("UPDATE online_attempts SET is_synced=TRUE WHERE publish_token=? AND status='SUBMITTED'", (token,))
     else:
         for aid in attempt_ids:
-            db.x("UPDATE online_attempts SET is_synced=1 WHERE id=? AND publish_token=?", (aid, token))
+            db.x("UPDATE online_attempts SET is_synced=TRUE WHERE id=? AND publish_token=?", (aid, token))
 
     res = jsonify({'ok': True, 'message': 'تم تحديث حالة المزامنة بنجاح.'})
     return apply_cors_headers(res, req_origin)
@@ -301,7 +301,7 @@ def teacher_purge(token):
         return apply_cors_headers(res, req_origin)
 
     # GATEKEEPER 2: Reject purge if any SUBMITTED attempts have NOT been synced
-    unsynced_count = db.q("SELECT COUNT(*) as n FROM online_attempts WHERE publish_token=? AND status='SUBMITTED' AND is_synced=0", (token,), one=True)['n']
+    unsynced_count = db.q("SELECT COUNT(*) as n FROM online_attempts WHERE publish_token=? AND status='SUBMITTED' AND is_synced=FALSE", (token,), one=True)['n']
     if unsynced_count > 0:
         res = jsonify({
             'ok': False,
@@ -447,7 +447,7 @@ def student_start():
         'percentage': 0.0,
         'started_at': now_str,
         'server_deadline': server_deadline,
-        'is_synced': 0
+        'is_synced': False
     })
 
     res = jsonify({
